@@ -1,0 +1,2509 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ระบบติดตามงานผลิตและงานโลหะ</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Google Fonts: Prompt & Sarabun -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['Prompt', 'sans-serif'],
+            sans: ['Sarabun', 'sans-serif'],
+          },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    /* Custom scrollbar for clean light theme */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+</head>
+<body class="bg-white text-slate-800 font-sans min-h-screen flex flex-col antialiased selection:bg-amber-200 selection:text-slate-900">
+
+  <!-- ==================== HEADER ==================== -->
+  <header class="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <!-- Brand & Summary Subtitle -->
+      <div class="flex items-start sm:items-center gap-3.5">
+        <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-md shadow-amber-500/20 shrink-0">
+          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M11.42 15.17 17.25 21A2.652 2.652 0 0 0 21 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 1 1-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 0 0 4.486-6.336l-3.276 3.277a3.004 3.004 0 0 1-2.25-2.25l3.276-3.276a4.5 4.5 0 0 0-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437 1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008Z" />
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-lg sm:text-xl font-display font-bold text-slate-900 tracking-tight">
+            ระบบติดตามงานผลิต &amp; งานโลหะ
+          </h1>
+          <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-0.5 text-xs text-slate-500">
+            <span id="headerSummaryText">กำลังโหลดข้อมูล...</span>
+            <span class="inline-flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded-full bg-slate-100 border border-slate-200 text-slate-600">
+              <span id="syncStatusDot" class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+              <span id="syncStatusText">กำลังเชื่อมต่อ...</span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Header Action Buttons -->
+      <div class="flex flex-wrap items-center gap-2">
+        <input id="csvFileInput" type="file" accept=".csv" multiple class="hidden" />
+        <button id="btnImportCsv" type="button" class="px-3 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-xs font-display font-medium transition flex items-center gap-1.5 shadow-sm">
+          <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
+          </svg>
+          <span>นำเข้า CSV</span>
+        </button>
+
+        <button id="btnRefreshSheet" type="button" class="px-3 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-xs font-display font-medium transition flex items-center gap-1.5 shadow-sm">
+          <svg id="refreshIcon" class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+          </svg>
+          <span>รีเฟรชข้อมูล</span>
+        </button>
+
+        <button id="btnOpenSheetModal" type="button" class="px-3 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 text-xs font-display font-medium transition flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
+          </svg>
+          <span>เชื่อมต่อ Sheets</span>
+        </button>
+
+        <button id="btnExportCsv" type="button" class="px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-display font-semibold transition flex items-center gap-1.5 shadow-sm shadow-amber-500/20">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+          </svg>
+          <span>ส่งออก CSV</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Navigation Tabs -->
+    <nav class="border-t border-slate-200 bg-slate-50/90">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center overflow-x-auto">
+        <button type="button" data-tab="production" class="main-tab-btn group relative flex flex-col items-center justify-center px-5 sm:px-7 py-3 border-b-[3px] border-emerald-500 text-slate-900 transition whitespace-nowrap">
+          <svg class="w-5 h-5 mb-1" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15.91 11.672a.375.375 0 0 1 0 .656l-5.603 3.113a.375.375 0 0 1-.557-.328V8.887c0-.286.307-.466.557-.327l5.603 3.112Z" />
+          </svg>
+          <span class="font-display text-xs sm:text-sm font-semibold tracking-wide flex items-center gap-1.5">
+            งานผลิต
+            <span id="tabProductionCount" class="px-1.5 py-0.2 rounded-md text-[10px] font-mono bg-emerald-100 text-emerald-700">0</span>
+          </span>
+        </button>
+
+        <button type="button" data-tab="metal" class="main-tab-btn group relative flex flex-col items-center justify-center px-5 sm:px-7 py-3 border-b-[3px] border-transparent text-slate-500 hover:text-slate-800 transition whitespace-nowrap">
+          <svg class="w-5 h-5 mb-1" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M11.42 15.17 17.25 21A2.652 2.652 0 0 0 21 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 1 1-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 0 0 4.486-6.336l-3.276 3.277a3.004 3.004 0 0 1-2.25-2.25l3.276-3.276a4.5 4.5 0 0 0-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437 1.745-1.437" />
+          </svg>
+          <span class="font-display text-xs sm:text-sm font-medium tracking-wide flex items-center gap-1.5">
+            งานโลหะ
+            <span id="tabMetalCount" class="px-1.5 py-0.2 rounded-md text-[10px] font-mono bg-slate-200/80 text-slate-600">0</span>
+          </span>
+        </button>
+
+        <button type="button" data-tab="products" class="main-tab-btn group relative flex flex-col items-center justify-center px-5 sm:px-7 py-3 border-b-[3px] border-transparent text-slate-500 hover:text-slate-800 transition whitespace-nowrap">
+          <svg class="w-5 h-5 mb-1" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m21 7.5-9-5.25L3 7.5m18 0-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" />
+          </svg>
+          <span class="font-display text-xs sm:text-sm font-medium tracking-wide flex items-center gap-1.5">
+            สินค้าทั้งหมด
+            <span id="tabProductsCount" class="px-1.5 py-0.2 rounded-md text-[10px] font-mono bg-slate-200/80 text-slate-600">0</span>
+          </span>
+        </button>
+      </div>
+    </nav>
+  </header>
+
+  <!-- ==================== MAIN CONTENT ==================== -->
+  <main class="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-5 flex-1 space-y-5">
+
+    <!-- Sync Notice Banner -->
+    <div id="syncBanner" class="hidden rounded-2xl bg-amber-50 border border-amber-200 p-3.5 sm:px-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div class="flex items-start sm:items-center gap-2.5 text-xs sm:text-sm text-amber-800">
+        <svg id="bannerIcon" class="w-5 h-5 text-amber-500 shrink-0 mt-0.5 sm:mt-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+        </svg>
+        <p id="bannerMessage" class="leading-relaxed">กำลังเชื่อมต่อกับ Google Sheets...</p>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <button id="btnBannerRetry" type="button" class="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-display font-semibold transition">
+          ดึงข้อมูลอีกครั้ง
+        </button>
+        <button id="btnBannerImportCsv" type="button" class="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-xs font-display transition">
+          นำเข้า CSV
+        </button>
+      </div>
+    </div>
+
+    <!-- ==================== ORDERS FILTER & TOOLBAR ==================== -->
+    <section id="ordersFilterSection" class="bg-slate-50/80 border border-slate-200 rounded-2xl p-4 space-y-3">
+      <div class="flex flex-col lg:flex-row lg:items-center gap-3">
+        <!-- Search Box -->
+        <div class="relative flex-1">
+          <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+          </svg>
+          <input id="searchInput" type="text" placeholder="ค้นหา HGN, PO, ชื่อลูกค้า, ชื่อรุ่น, รหัสสี หรือ Spec..." class="w-full pl-10 pr-9 py-2.5 rounded-xl bg-white border border-slate-300 text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-amber-500 transition" />
+          <button id="btnClearSearch" type="button" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Compact Filter Dropdowns -->
+        <div class="flex flex-wrap items-center gap-2">
+          <select id="materialFilter" class="px-3 py-2.5 rounded-xl bg-white border border-slate-300 text-xs sm:text-sm text-slate-700 focus:outline-none focus:border-amber-500 max-w-[220px]">
+            <option value="ALL">โครงสร้าง / วัสดุ: ทั้งหมด</option>
+          </select>
+
+          <select id="categoryFilter" class="px-3 py-2.5 rounded-xl bg-white border border-slate-300 text-xs sm:text-sm text-slate-700 focus:outline-none focus:border-amber-500">
+            <option value="ALL">หมวดหมู่: ทั้งหมด</option>
+            <option value="Table">Table</option>
+            <option value="Chair">Chair</option>
+            <option value="Stool, Bar Stool">Stool, Bar Stool</option>
+            <option value="Sofa">Sofa</option>
+            <option value="Bench">Bench</option>
+            <option value="Other">Other</option>
+          </select>
+
+          <select id="imageFilter" class="px-3 py-2.5 rounded-xl bg-white border border-slate-300 text-xs sm:text-sm text-slate-700 focus:outline-none focus:border-amber-500">
+            <option value="ALL">รูปภาพ: ทั้งหมด</option>
+            <option value="HAS_IMG">มีรูปภาพ</option>
+            <option value="NO_IMG">ไม่มีรูปภาพ</option>
+          </select>
+
+          <select id="sortSelect" class="px-3 py-2.5 rounded-xl bg-white border border-slate-300 text-xs sm:text-sm text-slate-700 focus:outline-none focus:border-amber-500">
+            <option value="po_desc">เรียง: เลขที่ PO ล่าสุด</option>
+            <option value="po_asc">เรียง: เลขที่ PO เก่าสุด</option>
+            <option value="hgn_asc">เรียง: เลขที่ออเดอร์ (HGN)</option>
+            <option value="qty_desc">เรียง: จำนวนมากไปน้อย</option>
+            <option value="model_asc">เรียง: ชื่อสินค้า ก-ฮ / A-Z</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Result Count & View Switcher -->
+      <div class="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-200">
+        <div id="resultCountText" class="text-xs sm:text-sm text-slate-600 font-display whitespace-nowrap">
+          แสดง 0 รายการ (0 ชิ้น)
+        </div>
+
+        <div class="inline-flex items-center p-1 rounded-xl bg-white border border-slate-200">
+          <button id="btnViewTable" type="button" class="px-3 py-1.5 rounded-lg text-xs font-display font-medium bg-amber-500 text-white transition flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+            </svg>
+            ตาราง
+          </button>
+          <button id="btnViewCard" type="button" class="px-3 py-1.5 rounded-lg text-xs font-display font-medium text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
+            </svg>
+            การ์ด
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== ORDERS TABLE VIEW ==================== -->
+    <section id="tableViewSection" class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-slate-50 border-b border-slate-200 text-[11px] sm:text-xs font-display font-semibold text-slate-600 uppercase tracking-wider">
+              <th class="py-3.5 px-4 whitespace-nowrap">เลขที่ออเดอร์ (HGN) / PO</th>
+              <th class="py-3.5 px-4 whitespace-nowrap">ลูกค้า</th>
+              <th class="py-3.5 px-4 whitespace-nowrap">ชื่อสินค้า (Model)</th>
+              <th class="py-3.5 px-4 whitespace-nowrap">โครงสร้าง / วัสดุ</th>
+              <th class="py-3.5 px-4 whitespace-nowrap">Spec</th>
+              <th class="py-3.5 px-4 whitespace-nowrap text-right">จำนวน</th>
+              <th class="py-3.5 px-4 whitespace-nowrap">กำหนดส่ง</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody" class="divide-y divide-slate-200 text-sm"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ==================== ORDERS CARD VIEW ==================== -->
+    <section id="cardViewSection" class="hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></section>
+
+    <!-- ==================== ORDERS EMPTY STATE ==================== -->
+    <section id="emptyState" class="hidden bg-slate-50 border border-slate-200 rounded-2xl p-10 text-center space-y-3">
+      <div class="w-12 h-12 rounded-2xl bg-slate-200 text-slate-500 flex items-center justify-center mx-auto">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+        </svg>
+      </div>
+      <div class="font-display font-semibold text-slate-800">ไม่พบรายการที่ตรงกับเงื่อนไขการค้นหา</div>
+      <p class="text-xs text-slate-500">ลองเปลี่ยนคำค้นหาหรือล้างตัวกรองเพื่อดูรายการทั้งหมด</p>
+      <button id="btnResetFilters" type="button" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-display font-semibold transition">
+        ล้างตัวกรองทั้งหมด
+      </button>
+    </section>
+
+    <!-- ==================== PRODUCT MASTER TAB (สินค้าทั้งหมด) ==================== -->
+    <section id="productsTabSection" class="hidden space-y-4">
+      <div class="bg-slate-50/80 border border-slate-200 rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div>
+          <h2 class="text-base sm:text-lg font-display font-bold text-slate-900">สินค้าทั้งหมด (Product Master)</h2>
+          <p id="pmSubtitleCount" class="text-xs text-slate-500 mt-0.5">แสดง 0 รายการสินค้า</p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <div class="relative flex-1 sm:flex-initial sm:w-64">
+            <svg class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+            </svg>
+            <input id="pmSearchInput" type="text" placeholder="ค้นหาชื่อสินค้า, หมวดหมู่..." class="w-full pl-9 pr-3 py-2 rounded-xl bg-white border border-slate-300 text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500" />
+          </div>
+
+          <select id="pmCategoryFilter" class="px-3 py-2 rounded-xl bg-white border border-slate-300 text-xs sm:text-sm text-slate-700 focus:outline-none focus:border-blue-500">
+            <option value="ALL">หมวดหมู่: ทั้งหมด</option>
+          </select>
+
+          <button id="btnAddProduct" type="button" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-display font-semibold transition flex items-center gap-1.5 shadow-sm shadow-blue-600/20">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            <span>เพิ่มสินค้าใหม่</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-50 border-b border-slate-200 text-[11px] sm:text-xs font-display font-semibold text-slate-600">
+                <th class="py-3.5 px-4 text-center w-24">รูป</th>
+                <th class="py-3.5 px-4">
+                  <button id="btnPmSortName" type="button" class="inline-flex items-center gap-1.5 hover:text-slate-900 transition">
+                    <span>ชื่อสินค้า</span>
+                    <span id="pmSortBadge" class="px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 text-[10px]">↑</span>
+                  </button>
+                </th>
+                <th class="py-3.5 px-4 whitespace-nowrap">หมวดหมู่</th>
+                <th class="py-3.5 px-4 text-center whitespace-nowrap">สถานะ</th>
+                <th class="py-3.5 px-4 text-center whitespace-nowrap">รายการวัตถุดิบ (BOM)</th>
+                <th class="py-3.5 px-4 text-center whitespace-nowrap">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="pmTableBody" class="divide-y divide-slate-200 text-sm"></tbody>
+          </table>
+        </div>
+        <div id="pmEmptyState" class="hidden p-10 text-center text-sm text-slate-500">
+          ไม่พบรายการสินค้าที่ค้นหา
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ==================== DETAIL MODAL (ORDER ITEM) ==================== -->
+  <div id="detailModal" class="hidden fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6">
+    <div class="bg-white border border-slate-200 rounded-2xl max-w-4xl w-full max-h-[92vh] overflow-hidden flex flex-col shadow-2xl">
+      <div class="px-5 py-4 border-b border-slate-200 flex items-start justify-between gap-3 bg-slate-50">
+        <div class="min-w-0">
+          <div class="flex flex-wrap items-center gap-2 mb-1.5">
+            <span id="modalHgnBadge" class="px-2.5 py-0.5 rounded-lg text-xs font-mono font-semibold bg-sky-50 text-sky-700 border border-sky-200">HGN: -</span>
+            <span id="modalPoBadge" class="px-2.5 py-0.5 rounded-lg text-xs font-mono bg-slate-100 text-slate-700 border border-slate-200">PO: -</span>
+            <span id="modalMatBadge" class="px-2.5 py-0.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-700">-</span>
+          </div>
+          <h2 id="modalModelTitle" class="text-base sm:text-lg font-display font-bold text-slate-900 break-words">-</h2>
+        </div>
+        <button id="btnCloseDetailModal" type="button" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition shrink-0">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="p-5 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-5">
+        <!-- Image Preview Column -->
+        <div class="space-y-3">
+          <div class="relative rounded-2xl bg-slate-50 border border-slate-200 h-72 sm:h-80 flex items-center justify-center overflow-hidden">
+            <div id="modalImgSpinner" class="hidden flex flex-col items-center gap-2 text-slate-500 text-xs">
+              <div class="w-7 h-7 border-2 border-slate-300 border-t-amber-500 rounded-full animate-spin"></div>
+              <span>กำลังโหลดรูปภาพ...</span>
+            </div>
+            <img id="modalDirectImg" src="" alt="รูปสินค้า" class="hidden w-full h-full object-contain p-2 cursor-zoom-in" />
+            <iframe id="modalDriveIframe" src="" class="hidden w-full h-full border-0" allow="autoplay"></iframe>
+            <div id="modalNoImgState" class="hidden text-center text-slate-400 space-y-2 p-4">
+              <svg class="w-10 h-10 mx-auto opacity-50" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Z" />
+              </svg>
+              <div class="text-xs">ยังไม่มีลิงก์รูปภาพสำหรับสินค้านี้</div>
+            </div>
+          </div>
+
+          <div id="modalImgControls" class="hidden flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <button id="btnTogglePreviewMode" type="button" class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-display transition">
+                สลับโหมดพรีวิว Drive
+              </button>
+              <button id="btnZoomLightbox" type="button" class="px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 text-xs font-display transition">
+                ขยายเต็มจอ
+              </button>
+            </div>
+            <a id="modalDriveExternalLink" href="#" target="_blank" rel="noopener noreferrer" class="text-xs text-blue-600 hover:text-blue-700 underline">
+              เปิดลิงก์ต้นฉบับ
+            </a>
+          </div>
+        </div>
+
+        <!-- Specifications Column -->
+        <div class="space-y-4 text-sm">
+          <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-2.5">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-xs text-slate-500">ลูกค้า</span>
+              <span id="modalCustomer" class="font-medium text-slate-900 text-right">-</span>
+            </div>
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-xs text-slate-500">จำนวนสั่งผลิต</span>
+              <div class="text-right">
+                <span id="modalQty" class="font-display font-bold text-amber-600">0 ชิ้น</span>
+                <span id="modalDueDate" class="text-xs text-slate-500 ml-1.5">• กำหนดส่ง: -</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+            <div class="text-xs font-display font-semibold text-amber-800 mb-1">Spec / รายละเอียดเพิ่มเติม</div>
+            <div id="modalSpecText" class="text-xs sm:text-sm text-amber-950 whitespace-pre-wrap leading-relaxed">-</div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3 text-xs">
+            <div class="bg-slate-50 border border-slate-200 rounded-xl p-3">
+              <div class="text-slate-500 mb-0.5">หมวดหมู่</div>
+              <div id="modalCategory" class="text-slate-800 font-medium">-</div>
+            </div>
+            <div class="bg-slate-50 border border-slate-200 rounded-xl p-3">
+              <div class="text-slate-500 mb-0.5">โครงสร้าง (วัสดุ)</div>
+              <div id="modalMaterial" class="text-slate-800 font-medium">-</div>
+            </div>
+            <div class="bg-slate-50 border border-slate-200 rounded-xl p-3">
+              <div class="text-slate-500 mb-0.5">สี / รหัสโครงสร้าง</div>
+              <div id="modalColorCode" class="text-slate-800 font-medium">-</div>
+            </div>
+            <div class="bg-slate-50 border border-slate-200 rounded-xl p-3">
+              <div class="text-slate-500 mb-0.5">ขนาด / หน้าโต๊ะ</div>
+              <div class="text-slate-800 font-medium"><span id="modalSize">-</span> • <span id="modalTopMat">-</span></div>
+            </div>
+          </div>
+
+          <div class="pt-1 flex justify-end">
+            <button id="btnCopySpec" type="button" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 text-xs font-display font-medium transition flex items-center gap-1.5">
+              <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0 0 13.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 0 1-.75.75H9a.75.75 0 0 1-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 0 1-2.25 2.25H6.75A2.25 2.25 0 0 1 4.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 0 1 1.927-.184" />
+              </svg>
+              คัดลอกข้อมูลสเปก
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== FULLSCREEN LIGHTBOX MODAL ==================== -->
+  <div id="lightboxModal" class="hidden fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">
+    <button id="btnCloseLightbox" type="button" class="absolute top-4 right-4 p-2.5 rounded-full bg-white/90 hover:bg-white text-slate-800 transition shadow-lg">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+      </svg>
+    </button>
+    <img id="lightboxImg" src="" alt="ภาพขยายเต็มจอ" class="max-w-full max-h-[90vh] object-contain rounded-xl bg-white p-2 shadow-2xl" />
+  </div>
+
+  <!-- ==================== BOM DETAIL MODAL ==================== -->
+  <div id="bomModal" class="hidden fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6">
+    <div class="bg-white border border-slate-200 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+      <div class="px-5 py-4 border-b border-slate-200 flex items-center justify-between gap-3 bg-slate-50">
+        <div class="min-w-0">
+          <div class="flex items-center gap-2 mb-1">
+            <span id="bomModalCategory" class="px-2 py-0.5 rounded-md text-[11px] bg-slate-200/80 text-slate-700">-</span>
+            <span id="bomModalStatus" class="px-2 py-0.5 rounded-md text-[11px] bg-emerald-50 text-emerald-700 border border-emerald-200">ใช้งานปกติ</span>
+          </div>
+          <h2 id="bomModalTitle" class="text-base sm:text-lg font-display font-bold text-slate-900 truncate">-</h2>
+        </div>
+        <button id="btnCloseBomModal" type="button" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition shrink-0">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="p-5 overflow-y-auto space-y-4">
+        <div class="flex flex-col sm:flex-row gap-4">
+          <div class="w-full sm:w-36 h-36 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center overflow-hidden shrink-0">
+            <img id="bomModalImg" src="" alt="" class="hidden w-full h-full object-contain bg-white p-1" />
+            <div id="bomModalNoImg" class="text-xs text-slate-400">ไม่มีรูปภาพ</div>
+          </div>
+          <div class="flex-1 space-y-2.5 text-xs">
+            <div class="bg-slate-50 border border-slate-200 rounded-xl p-3">
+              <div class="text-slate-500 mb-0.5">ประวัติการสั่งผลิต</div>
+              <div id="bomModalOrderStats" class="text-slate-800 font-medium">-</div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5">
+                <div class="text-slate-500 mb-0.5">โครงสร้าง / วัสดุที่เคยผลิต</div>
+                <div id="bomModalMaterials" class="text-slate-800">-</div>
+              </div>
+              <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5">
+                <div class="text-slate-500 mb-0.5">สีโครงสร้าง / หน้าโต๊ะ</div>
+                <div class="text-slate-800"><span id="bomModalColors">-</span> / <span id="bomModalTopMats">-</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+          <div class="text-xs font-display font-semibold text-amber-800 mb-1">รายการวัตถุดิบ (BOM) / Spec</div>
+          <div id="bomModalText" class="text-xs sm:text-sm text-amber-950 whitespace-pre-wrap leading-relaxed">-</div>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-1">
+          <button id="btnBomCopy" type="button" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-display transition">
+            คัดลอก BOM
+          </button>
+          <button id="btnBomEditProduct" type="button" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-display font-semibold transition">
+            แก้ไขข้อมูล / BOM
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== ADD / EDIT PRODUCT MODAL ==================== -->
+  <div id="productFormModal" class="hidden fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6">
+    <div class="bg-white border border-slate-200 rounded-2xl max-w-xl w-full max-h-[92vh] overflow-hidden flex flex-col shadow-2xl">
+      <div class="px-5 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+        <h2 id="productFormTitle" class="text-base sm:text-lg font-display font-bold text-slate-900">เพิ่มสินค้าใหม่</h2>
+        <button id="btnCloseProductForm" type="button" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <form id="productForm" class="p-5 overflow-y-auto space-y-4">
+        <div>
+          <label for="pfName" class="block text-xs font-display font-medium text-slate-700 mb-1">ชื่อสินค้า (Model) *</label>
+          <input id="pfName" type="text" required placeholder="เช่น C9 Chair โครงเหล็กเหลือง" class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 text-sm text-slate-900 focus:outline-none focus:border-blue-500" />
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label for="pfCategory" class="block text-xs font-display font-medium text-slate-700 mb-1">หมวดหมู่</label>
+            <select id="pfCategory" class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 text-sm text-slate-900 focus:outline-none focus:border-blue-500">
+              <option value="Chair">Chair</option>
+              <option value="Table">Table</option>
+              <option value="Stool, Bar Stool">Stool, Bar Stool</option>
+              <option value="Sofa">Sofa</option>
+              <option value="Bench">Bench</option>
+              <option value="Shelf, Storage">Shelf, Storage</option>
+              <option value="Desk, Console">Desk, Console</option>
+              <option value="Accessories">Accessories</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div>
+            <label for="pfStatus" class="block text-xs font-display font-medium text-slate-700 mb-1">สถานะ</label>
+            <select id="pfStatus" class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 text-sm text-slate-900 focus:outline-none focus:border-blue-500">
+              <option value="ใช้งานปกติ">ใช้งานปกติ</option>
+              <option value="รอดำเนินการ">รอดำเนินการ</option>
+              <option value="ปิดใช้งาน">ปิดใช้งาน</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label for="pfImg" class="block text-xs font-display font-medium text-slate-700 mb-1">รูปภาพสินค้า (อัปโหลดจากเครื่อง หรือวางลิงก์ Google Drive)</label>
+          <div class="space-y-2.5">
+            <!-- Upload Dropzone & Preview -->
+            <div class="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-dashed border-slate-300 hover:border-blue-400 transition">
+              <div id="pfImgPreviewWrap" class="w-16 h-16 rounded-xl bg-white border border-slate-200 flex items-center justify-center overflow-hidden shrink-0">
+                <svg id="pfImgPlaceholderIcon" class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Z" />
+                </svg>
+                <img id="pfImgPreview" src="" alt="ตัวอย่างรูปสินค้า" class="hidden w-full h-full object-contain bg-white p-0.5" />
+              </div>
+              <div class="flex-1 min-w-0">
+                <input id="pfImgFile" type="file" accept="image/*" class="hidden" />
+                <div class="flex items-center flex-wrap gap-2">
+                  <button id="btnPickProductImg" type="button" class="px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-display font-medium transition">
+                    เลือกรูปจากเครื่อง
+                  </button>
+                  <button id="btnClearImgFile" type="button" class="hidden px-2.5 py-1.5 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs transition">
+                    ล้างรูปที่เลือก
+                  </button>
+                </div>
+                <p id="pfFileNameText" class="text-[11px] text-slate-500 mt-1.5 truncate">
+                  รองรับไฟล์ JPG, PNG, WebP (อัปโหลดขึ้น Drive อัตโนมัติ)
+                </p>
+              </div>
+            </div>
+
+            <!-- Direct URL Input -->
+            <input id="pfImg" type="text" placeholder="หรือวางลิงก์รูปภาพ Google Drive / URL (ถ้ามีอยู่แล้ว)" class="w-full px-3.5 py-2 rounded-xl bg-white border border-slate-300 text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-blue-500" />
+          </div>
+        </div>
+
+        <div>
+          <label for="pfBom" class="block text-xs font-display font-medium text-slate-700 mb-1">ข้อมูล BOM / Spec วัตถุดิบ</label>
+          <textarea id="pfBom" rows="3" placeholder="ระบุรายละเอียดวัตถุดิบ ขนาดเหล็ก สีพ่น หรือหมายเหตุ BOM..." class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 text-sm text-slate-900 focus:outline-none focus:border-blue-500"></textarea>
+        </div>
+
+        <!-- Auto-save to Sheet Status Box -->
+        <div id="pfSheetSyncNotice" class="rounded-xl p-3 text-xs leading-relaxed border"></div>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <button id="btnCancelProductForm" type="button" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-display transition">
+            ยกเลิก
+          </button>
+          <button id="btnSubmitProductForm" type="submit" class="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-xs sm:text-sm font-display font-semibold transition flex items-center gap-2">
+            <span>บันทึกข้อมูล</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== GOOGLE SHEETS SETTINGS MODAL ==================== -->
+  <div id="sheetModal" class="hidden fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6">
+    <div class="bg-white border border-slate-200 rounded-2xl max-w-2xl w-full max-h-[92vh] overflow-hidden flex flex-col shadow-2xl">
+      <div class="px-5 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+        <h2 class="text-base sm:text-lg font-display font-bold text-slate-900 flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+          ตั้งค่าการเชื่อมต่อ Google Sheets
+        </h2>
+        <button id="btnCloseSheetModal" type="button" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="p-5 overflow-y-auto space-y-4 text-sm">
+        <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3.5 text-xs text-emerald-800 leading-relaxed">
+          <strong>สำคัญ:</strong> อย่าลืมเปิดแชร์ไฟล์ Google Sheets เป็น <strong>"ทุกคนที่มีลิงก์ (ผู้มีสิทธิ์อ่าน / Viewer)"</strong> เพื่อให้หน้าเว็บดึงข้อมูลล่าสุดจากแท็บ Order, Product และ Spec ได้ทันทีครับ
+        </div>
+
+        <div class="space-y-3">
+          <div>
+            <label for="inputOrderUrl" class="block text-xs font-display font-medium text-slate-700 mb-1">
+              1. ลิงก์ไฟล์ Google Sheets (แท็บ Order)
+            </label>
+            <input id="inputOrderUrl" type="text" class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-emerald-500" />
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label for="inputProductSheet" class="block text-xs font-display font-medium text-slate-700 mb-1">
+                2. ชื่อแท็บหรือลิงก์ Product (รูปภาพ)
+              </label>
+              <input id="inputProductSheet" type="text" value="Product" class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-emerald-500" />
+            </div>
+            <div>
+              <label for="inputSpecSheet" class="block text-xs font-display font-medium text-slate-700 mb-1">
+                3. ชื่อแท็บหรือลิงก์ Spec (สเปกที่กรอกเอง)
+              </label>
+              <input id="inputSpecSheet" type="text" value="Spec" class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-emerald-500" />
+            </div>
+          </div>
+
+          <!-- Apps Script Web App URL for Writing to Sheet -->
+          <div class="pt-1">
+            <label for="inputAppsScriptUrl" class="block text-xs font-display font-medium text-sky-700 mb-1">
+              4. ลิงก์ Google Apps Script Web App (สำหรับบันทึกสินค้าและอัปโหลดรูปเข้าชีท Product อัตโนมัติ)
+            </label>
+            <input id="inputAppsScriptUrl" type="text" placeholder="https://script.google.com/macros/s/.../exec" class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-sky-300 text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-500" />
+          </div>
+        </div>
+
+        <!-- Apps Script Setup Guide -->
+        <div class="bg-sky-50 border border-sky-200 rounded-xl p-4 space-y-2.5">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div class="text-xs font-display font-semibold text-sky-800">
+              ตั้งค่าครั้งเดียว: เพื่อให้กด "เพิ่มสินค้าใหม่" แล้วข้อมูล + รูปภาพเด้งเข้าชีท Product เลย
+            </div>
+            <button id="btnCopyAppsScript" type="button" class="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-xs font-display font-semibold transition shrink-0">
+              คัดลอกโค้ด Apps Script
+            </button>
+          </div>
+          <ol class="text-[11px] sm:text-xs text-slate-700 space-y-1 list-decimal list-inside leading-relaxed">
+            <li>เปิดไฟล์ Google Sheets ของคุณ → กดเมนู <strong>ส่วนขยาย (Extensions)</strong> → <strong>Apps Script</strong></li>
+            <li>ลบโค้ดเดิมออกทั้งหมด แล้ววางโค้ดที่คัดลอกไว้ → กดปุ่ม <strong>บันทึก</strong></li>
+            <li>กดปุ่ม <strong>ทำให้ใช้งานได้ (Deploy)</strong> → <strong>การทำให้ใช้งานได้รายการใหม่</strong> → เลือกประเภท <strong>เว็บแอป (Web app)</strong></li>
+            <li>ช่อง "ผู้ที่มีสิทธิ์เข้าถึง" เลือกเป็น <strong>ทุกคน (Anyone)</strong> → กด <strong>ทำให้ใช้งานได้</strong> → คัดลอก <strong>URL เว็บแอป</strong> มาวางในช่องที่ 4 ด้านบน</li>
+          </ol>
+        </div>
+
+        <!-- Helper Formulas for Spec Tab -->
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
+          <div class="text-xs font-display font-semibold text-amber-700">
+            สูตรสำหรับสร้างแท็บ Spec ใน Google Sheets (หัวตาราง A1: ชื่อสินค้า (Model) | B1: หมวดหมู่ที่เกี่ยวกับขาเหล็ก | C1: Spec | D1: รูปภาพ)
+          </div>
+          <div class="space-y-2">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-xs text-slate-600">สูตรช่อง <strong>A2</strong> (ดึงชื่อรุ่นและประเภทขาเหล็กแบบไม่ซ้ำ ไม่เลื่อนแถว):</span>
+              <button id="btnCopyFormulaA2" type="button" class="px-2.5 py-1 rounded-lg bg-white hover:bg-slate-100 text-amber-700 border border-slate-300 text-xs font-display transition shrink-0">
+                คัดลอกสูตร A2
+              </button>
+            </div>
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-xs text-slate-600">สูตรช่อง <strong>D2</strong> (ดึงรูปภาพจากแท็บ Product มาแสดงในเซลล์อัตโนมัติ):</span>
+              <button id="btnCopyFormulaD2" type="button" class="px-2.5 py-1 rounded-lg bg-white hover:bg-slate-100 text-amber-700 border border-slate-300 text-xs font-display transition shrink-0">
+                คัดลอกสูตร D2
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-2">
+          <button id="btnSaveAndSync" type="button" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-display font-semibold transition flex items-center gap-2">
+            บันทึกและดึงข้อมูลทันที
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== TOAST NOTIFICATION ==================== -->
+  <div id="toast" class="hidden fixed bottom-5 right-5 z-50 px-4 py-3 rounded-xl bg-slate-900 text-white text-xs sm:text-sm font-display shadow-xl flex items-center gap-2">
+    <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+    <span id="toastMessage"></span>
+  </div>
+
+  <!-- ==================== JAVASCRIPT ==================== -->
+  <script>
+    // =========================================================================
+    // 1. DEFAULT CONFIG & FALLBACK DATA
+    // =========================================================================
+    const DEFAULT_SHEET_ID = '1nDfA5l5eDiCc6hz9O0Ef5zu9rZOYWdnBcDqNJ_Eo3Mg';
+    const DEFAULT_ORDER_URL = `https://docs.google.com/spreadsheets/d/${DEFAULT_SHEET_ID}/edit?gid=0#gid=0`;
+    const STORAGE_KEY = 'metal_leg_sheet_config_v2';
+
+    const FORMULA_A2 = '=UNIQUE(FILTER({Order!D2:D, Order!G2:G}, REGEXMATCH(Order!G2:G&Order!D2:D&Order!P2:P, "โลหะ|สแตนเลส|ขาเหลี่ยม|ขากลม|เหล็ก|Stainless")))';
+    const FORMULA_D2 = '=ARRAYFORMULA(IF(A2:A="","",IFERROR(IMAGE("https://drive.google.com/thumbnail?id="&REGEXEXTRACT(VLOOKUP(A2:A,Product!A:C,3,FALSE),"/d/([a-zA-Z0-9_-]+)")&"&sz=w400"),"")))';
+
+    // โค้ด Google Apps Script สำหรับให้ผู้ใช้คัดลอกไป Deploy 1 ครั้ง เพื่อให้หน้าเว็บส่งข้อมูล + อัปโหลดรูปเข้าชีท Product ได้โดยตรง
+    const APPS_SCRIPT_CODE = `function doPost(e) {
+  try {
+    var data = JSON.parse(e.postData.contents);
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName(data.productSheetName || 'Product') || ss.getSheets()[1] || ss.getSheets()[0];
+
+    var imgUrl = data.imgUrl || '';
+
+    // 1. หากมีการแนบไฟล์รูปภาพ ให้บันทึกลง Google Drive ในโฟลเดอร์ Product_Images และสร้างลิงก์แชร์อัตโนมัติ
+    if (data.imageBase64) {
+      var folders = DriveApp.getFoldersByName('Product_Images');
+      var folder = folders.hasNext() ? folders.next() : DriveApp.createFolder('Product_Images');
+      var bytes = Utilities.base64Decode(data.imageBase64);
+      var safeName = (data.name || 'product').replace(/[\\\\/:*?"<>|]/g, '_');
+      var ext = (data.imageMimeType && data.imageMimeType.indexOf('png') > -1) ? '.png' : '.jpg';
+      var blob = Utilities.newBlob(bytes, data.imageMimeType || 'image/jpeg', safeName + '_' + Date.now() + ext);
+      var file = folder.createFile(blob);
+      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      imgUrl = 'https://drive.google.com/file/d/' + file.getId() + '/view?usp=drive_link';
+    }
+
+    // 2. ตรวจสอบตำแหน่งคอลัมน์จากแถวหัวตารางของชีท Product
+    var lastCol = Math.max(sheet.getLastColumn(), 3);
+    var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(function(h) {
+      return String(h || '').trim().toLowerCase();
+    });
+
+    function findCol(keywords, fallbackCol) {
+      for (var i = 0; i < headers.length; i++) {
+        for (var k = 0; k < keywords.length; k++) {
+          if (headers[i].indexOf(keywords[k]) > -1) return i + 1;
+        }
+      }
+      return fallbackCol;
+    }
+
+    var nameCol = findCol(['ชื่อสินค้า', 'model'], 1);
+    var catCol = findCol(['หมวดหมู่', 'category'], 2);
+    var imgCol = findCol(['ลิงก์รูปภาพ', 'รูปภาพ', 'image'], 3);
+    var statusCol = findCol(['สถานะ', 'status'], 0);
+    var bomCol = findCol(['bom', 'วัตถุดิบ', 'spec'], 0);
+
+    // 3. ค้นหาว่ามีชื่อสินค้านี้เดิมอยู่แล้วหรือไม่ (กรณีแก้ไข)
+    var lastRow = sheet.getLastRow();
+    var targetRow = -1;
+    var lookupName = String(data.oldName || data.name || '').trim().toLowerCase();
+
+    if (data.mode === 'edit' && lastRow >= 2 && lookupName) {
+      var names = sheet.getRange(2, nameCol, lastRow - 1, 1).getValues();
+      for (var r = 0; r < names.length; r++) {
+        if (String(names[r][0] || '').trim().toLowerCase() === lookupName) {
+          targetRow = r + 2;
+          break;
+        }
+      }
+    }
+
+    if (targetRow === -1) {
+      targetRow = lastRow + 1;
+    }
+
+    // 4. บันทึกข้อมูลลงชีท Product
+    sheet.getRange(targetRow, nameCol).setValue(data.name || '');
+    sheet.getRange(targetRow, catCol).setValue(data.category || '');
+    sheet.getRange(targetRow, imgCol).setValue(imgUrl);
+    if (statusCol > 0) sheet.getRange(targetRow, statusCol).setValue(data.status || 'ใช้งานปกติ');
+    if (bomCol > 0 && data.bom) sheet.getRange(targetRow, bomCol).setValue(data.bom);
+
+    // 5. หากมีการกรอก BOM/Spec และมีแท็บ Spec อยู่ ให้ช่วยอัปเดตคอลัมน์ Spec ด้วย
+    if (data.bom) {
+      var specSheet = ss.getSheetByName(data.specSheetName || 'Spec');
+      if (specSheet && specSheet.getLastRow() >= 2) {
+        var sNames = specSheet.getRange(2, 1, specSheet.getLastRow() - 1, 1).getValues();
+        var curKey = String(data.name || '').trim().toLowerCase();
+        for (var s = 0; s < sNames.length; s++) {
+          if (String(sNames[s][0] || '').trim().toLowerCase() === curKey) {
+            specSheet.getRange(s + 2, 3).setValue(data.bom);
+            break;
+          }
+        }
+      }
+    }
+
+    return ContentService
+      .createTextOutput(JSON.stringify({ ok: true, imgUrl: imgUrl, row: targetRow }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService
+      .createTextOutput(JSON.stringify({ ok: false, error: String(err) }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}`;
+
+    // ข้อมูลตัวอย่างเบื้องต้น (แยกแถวตาม HGN / PO) ใช้แสดงทันทีระหว่างรอซิงก์จาก Google Sheets
+    const FALLBACK_ORDERS = [
+      { id: 1, hgn: 'HGN-26-4847', po: 'PO69-0611', customers: 'TSM Big C Bangbon', model: 'SM C02 เก้าอี้้เหล็กสีส้ม', category: 'Chair', material: 'โลหะ', colors: 'Other', codes: 'ส้ม', top_mat: '-', size: 'มาตรฐาน', qty: 14, due_date: '15/7/2026', spec: '', img: '', isSteel: true },
+      { id: 2, hgn: 'HGN-26-4847', po: 'PO69-0612', customers: 'TSM BigC Bangbon', model: 'SM C01 เก้าอี้เหล็กสีดำ', category: 'Chair', material: 'โลหะ', colors: 'Black', codes: '-', top_mat: '-', size: 'มาตรฐาน', qty: 30, due_date: '15/7/2026', spec: '', img: '', isSteel: true },
+      { id: 3, hgn: 'HGN-26-4847', po: 'PO69-0613', customers: 'TSM BigC Bangbon', model: 'SM C03 เก้าอี้เหล็กสีเงิน', category: 'Chair', material: 'โลหะ', colors: 'Other', codes: '-', top_mat: '-', size: 'มาตรฐาน', qty: 18, due_date: '15/7/2026', spec: '', img: '', isSteel: true },
+      { id: 4, hgn: 'HGN-26-4847', po: 'PO69-0614', customers: 'TSM BigC Bangbon', model: 'SM เก้าอี้พักคอย', category: 'Stool, Bar Stool', material: 'โลหะ', colors: 'Black', codes: '-', top_mat: '-', size: 'มาตรฐาน', qty: 6, due_date: '15/7/2026', spec: '', img: 'https://drive.google.com/file/d/1kkutJLi178FAGBJHJQHT6IeUL4gHifBF/view?usp=drive_link', isSteel: true },
+      { id: 5, hgn: 'HGN-26-4847', po: 'PO69-0615', customers: 'TSM BigC Bangbon', model: 'TSM T02 W65 D75 H75 Lamitak WY1282D', category: 'Table', material: 'โลหะ', colors: 'Black', codes: '-', top_mat: 'ลามิเนต', size: 'มาตรฐาน', qty: 14, due_date: '15/7/2026', spec: '', img: 'https://drive.google.com/file/d/1oEYZmmRMZvDRKzK8fqCcsDYINBz0evBk/view?usp=drive_link', isSteel: true },
+      { id: 6, hgn: 'HGN-26-4847', po: 'PO69-0616', customers: 'TSM BigC Bangbon', model: 'TSM T03 W65 D75 H75 LM06 VIRGO SMT6408P', category: 'Table', material: 'โลหะ', colors: 'Other', codes: 'ส้ม', top_mat: 'ลามิเนต', size: 'มาตรฐาน', qty: 15, due_date: '-', spec: '', img: 'https://drive.google.com/file/d/1GN57Ut-_QPM-Vbf3zNFEW4koerNaGbJ6/view?usp=drive_link', isSteel: true },
+      { id: 7, hgn: 'HGN-26-4847', po: 'PO69-0617', customers: 'TSM BigC Bangbon', model: 'TSM T01 W65 D75 H75 Lamitak WY4247X', category: 'Table', material: 'โลหะ', colors: 'Other', codes: '-', top_mat: 'ลามิเนต', size: 'มาตรฐาน', qty: 11, due_date: '15/7/2026', spec: '', img: 'https://drive.google.com/file/d/1wyNTY0gLpGlxb7eCHsQoZo7SZXcNStUf/view?usp=drive_link', isSteel: true },
+      { id: 8, hgn: 'HGN-26-4892', po: 'PO69-0749', customers: 'Shabushi RBS Mae Sot', model: 'Shabushi Barstool', category: 'Stool, Bar Stool', material: 'ไม้ยางพารา', colors: 'Charcoal', codes: '-', top_mat: '-', size: 'มาตรฐาน', qty: 13, due_date: '30/7/2026', spec: '', img: 'https://drive.google.com/file/d/1ux4HJssUD0VkpoWuhv7hNVXz4_rwbBds/view?usp=drive_link', isSteel: false },
+      { id: 9, hgn: 'HGN-26-4898', po: 'PO69-0773', customers: 'SHOWROOM', model: 'NEW ROUND Table DIA120', category: 'Table', material: 'ไม้โอ๊ค', colors: 'Tobacco', codes: '-', top_mat: 'ไม้โอ๊ค', size: 'Custom', qty: 1, due_date: '20/7/2026', spec: '', img: '', isSteel: false },
+      { id: 10, hgn: 'Escent UBN 4/14', po: 'PO69-1026', customers: 'CPN', model: 'Essent A-Table W750 D750 H750', category: 'Table', material: 'โลหะ', colors: 'Other', codes: '-', top_mat: 'เยื่อกาแฟ', size: 'มาตรฐาน', qty: 20, due_date: '2/9/2026', spec: '', img: 'https://drive.google.com/file/d/1WVM81R2Xkv7J-wSpk_MGsUBNCUWvws7c/view?usp=drive_link', isSteel: true },
+      { id: 11, hgn: 'Escent UBN 4/14', po: 'PO69-1027', customers: 'CPN', model: 'Escent Plong GD1-48', category: 'Chair', material: 'ไม้ยางพารา', colors: 'Natural OAK', codes: '-', top_mat: '-', size: 'มาตรฐาน', qty: 70, due_date: '2/9/2026', spec: '', img: '', isSteel: false },
+      { id: 12, hgn: 'Escent UBN 5/14', po: 'PO69-1029', customers: 'CPN', model: 'Essent B-Table', category: 'Table', material: 'โลหะ', colors: 'Other', codes: '-', top_mat: 'เยื่อกาแฟ', size: 'มาตรฐาน', qty: 18, due_date: '16/9/2026', spec: '', img: 'https://drive.google.com/file/d/1-nu2PYuh7BI0VSETEPl-uMkZgOl5N4Xv/view?usp=drive_link', isSteel: true }
+    ];
+
+    let PRODUCTS = [...FALLBACK_ORDERS];
+    let PRODUCT_MASTER = [];
+
+    const state = {
+      activeTab: 'production', // 'production' (ทั้งหมด) | 'metal' (เฉพาะงานโลหะ/ขาเหล็ก) | 'products' (สินค้าทั้งหมด)
+      search: '',
+      material: 'ALL',
+      category: 'ALL',
+      imageFilter: 'ALL',
+      sort: 'po_desc',
+      view: 'table',
+      isSynced: false,
+      syncSource: 'fallback',
+      lastSyncTime: null,
+      selectedItem: null,
+      previewMode: 'image'
+    };
+
+    const pmState = {
+      search: '',
+      category: 'ALL',
+      sortDir: 'asc', // 'asc' | 'desc'
+      selectedProduct: null,
+      editingId: null,
+      pendingImage: null // { base64, mimeType, fileName, previewUrl }
+    };
+
+    // =========================================================================
+    // 2. UTILITY FUNCTIONS
+    // =========================================================================
+    function escapeHtml(str) {
+      return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    let toastTimer = null;
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toastMessage');
+      if (!toast || !toastMsg) return;
+      toastMsg.textContent = msg;
+      toast.classList.remove('hidden');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.classList.add('hidden');
+      }, 3200);
+    }
+
+    function copyToClipboard(text, successMsg = 'คัดลอกเรียบร้อยแล้ว') {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        showToast(successMsg);
+      } catch (e) {
+        showToast('ไม่สามารถคัดลอกข้อความได้');
+      }
+    }
+
+    function extractDriveFileId(url) {
+      const s = String(url || '').trim();
+      if (!s) return '';
+      const m1 = s.match(/\/d\/([a-zA-Z0-9_-]+)/);
+      if (m1) return m1[1];
+      const m2 = s.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+      if (m2) return m2[1];
+      return '';
+    }
+
+    function getDriveThumbUrl(url, size = 400) {
+      const s = String(url || '').trim();
+      if (!s) return '';
+      const id = extractDriveFileId(s);
+      if (id) return `https://drive.google.com/thumbnail?id=${id}&sz=w${size}`;
+      if (/^https?:\/\//i.test(s)) return s;
+      return '';
+    }
+
+    function getDrivePreviewUrl(url) {
+      const s = String(url || '').trim();
+      if (!s) return '';
+      const id = extractDriveFileId(s);
+      if (id) return `https://drive.google.com/file/d/${id}/preview`;
+      return s;
+    }
+
+    function getMaterialBadgeClass(material) {
+      const m = String(material || '');
+      if (m.includes('โลหะ')) return 'bg-sky-50 text-sky-700 border border-sky-200';
+      if (m.includes('ขาเหลี่ยม')) return 'bg-amber-50 text-amber-700 border border-amber-200';
+      if (m.includes('ขากลม')) return 'bg-emerald-50 text-emerald-700 border border-emerald-200';
+      if (m.includes('สแตนเลส')) return 'bg-slate-100 text-slate-700 border border-slate-300';
+      if (m.includes('ไม้')) return 'bg-orange-50 text-orange-700 border border-orange-200';
+      return 'bg-slate-100 text-slate-600 border border-slate-200';
+    }
+
+    function inferCategoryFromModel(model) {
+      const name = String(model || '').toLowerCase();
+      if (['table', 'โต๊ะ', 't0', 't1', 't2', 't3', 't-0', 't-1', 't-2', 'counter'].some(k => name.includes(k))) return 'Table';
+      if (['stool', 'barstool', 'พักคอย'].some(k => name.includes(k))) return 'Stool, Bar Stool';
+      if (['chair', 'เก้าอี้', 'c0', 'c1', 'c2', 'c3', 'c8', 'c9'].some(k => name.includes(k))) return 'Chair';
+      if (['bench', 'ม้านั่ง'].some(k => name.includes(k))) return 'Bench';
+      if (['sofa', 'โซฟา'].some(k => name.includes(k))) return 'Sofa';
+      return 'Other';
+    }
+
+    function pickField(row, exactNames = [], partialNames = []) {
+      if (!row || typeof row !== 'object') return '';
+      const keys = Object.keys(row);
+      for (const name of exactNames) {
+        if (Object.prototype.hasOwnProperty.call(row, name)) {
+          const val = String(row[name] ?? '').trim();
+          if (val) return val;
+        }
+        const normTarget = name.trim().toLowerCase();
+        const foundKey = keys.find(k => k.trim().toLowerCase() === normTarget);
+        if (foundKey) {
+          const val = String(row[foundKey] ?? '').trim();
+          if (val) return val;
+        }
+      }
+      for (const part of partialNames) {
+        const p = part.toLowerCase();
+        const foundKey = keys.find(k => k.toLowerCase().includes(p));
+        if (foundKey) {
+          const val = String(row[foundKey] ?? '').trim();
+          if (val) return val;
+        }
+      }
+      return '';
+    }
+
+    // =========================================================================
+    // 3. CSV PARSER & GOOGLE SHEETS SYNC
+    // =========================================================================
+    function parseCsvText(csvText) {
+      const text = String(csvText || '').replace(/^\uFEFF/, '');
+      const rows = [];
+      let currentRow = [];
+      let currentVal = '';
+      let inQuotes = false;
+
+      for (let i = 0; i < text.length; i++) {
+        const ch = text[i];
+        const next = text[i + 1];
+
+        if (inQuotes) {
+          if (ch === '"' && next === '"') {
+            currentVal += '"';
+            i++;
+          } else if (ch === '"') {
+            inQuotes = false;
+          } else {
+            currentVal += ch;
+          }
+        } else {
+          if (ch === '"') {
+            inQuotes = true;
+          } else if (ch === ',') {
+            currentRow.push(currentVal);
+            currentVal = '';
+          } else if (ch === '\r' && next === '\n') {
+            currentRow.push(currentVal);
+            rows.push(currentRow);
+            currentRow = [];
+            currentVal = '';
+            i++;
+          } else if (ch === '\n' || ch === '\r') {
+            currentRow.push(currentVal);
+            rows.push(currentRow);
+            currentRow = [];
+            currentVal = '';
+          } else {
+            currentVal += ch;
+          }
+        }
+      }
+
+      if (currentVal.length > 0 || currentRow.length > 0) {
+        currentRow.push(currentVal);
+        rows.push(currentRow);
+      }
+
+      if (rows.length < 2) return [];
+      const headers = rows[0].map(h => String(h || '').trim());
+      const objects = [];
+
+      for (let r = 1; r < rows.length; r++) {
+        const cols = rows[r];
+        if (!cols || cols.every(c => !String(c || '').trim())) continue;
+        const obj = {};
+        headers.forEach((h, idx) => {
+          if (h) obj[h] = String(cols[idx] ?? '').trim();
+        });
+        objects.push(obj);
+      }
+
+      return objects;
+    }
+
+    function processSyncedSheets(orderRows, productRows = [], specRows = []) {
+      const prodMap = new Map();
+      productRows.forEach(p => {
+        const name = pickField(p, ['ชื่อสินค้า', 'ชื่อสินค้า (Model)', 'Model'], ['ชื่อสินค้า', 'model']);
+        if (!name) return;
+        const key = name.trim().toLowerCase();
+        if (!prodMap.has(key)) {
+          prodMap.set(key, {
+            category: pickField(p, ['หมวดหมู่', 'Category'], ['หมวดหมู่', 'category']),
+            img: pickField(p, ['ลิงก์รูปภาพ', 'รูปภาพ', 'Image'], ['รูปภาพ', 'image'])
+          });
+        }
+      });
+
+      const specMap = new Map();
+      specRows.forEach(s => {
+        const name = pickField(s, ['ชื่อสินค้า (Model)', 'ชื่อสินค้า', 'Model'], ['ชื่อสินค้า', 'model']);
+        if (!name) return;
+        const key = name.trim().toLowerCase();
+        const specVal = pickField(s, ['Spec', 'สเปก', 'รายละเอียด', 'BOM'], ['spec', 'สเปก', 'bom']);
+        const imgVal = pickField(s, ['รูปภาพ', 'ลิงก์รูปภาพ', 'Image'], ['รูปภาพ', 'image']);
+        specMap.set(key, { spec: specVal, img: imgVal });
+      });
+
+      const steelPattern = /โลหะ|สแตนเลส|ขาเหลี่ยม|ขากลม|เหล็ก|stainless|metal|steel|iron/i;
+      const result = [];
+      let idCounter = 1;
+
+      orderRows.forEach(row => {
+        const model = pickField(row, ['ชื่อสินค้า (Model)', 'ชื่อสินค้า', 'Model'], ['ชื่อสินค้า', 'model']);
+        const po = pickField(row, ['เลขที่ใบสั่งสินค้า (PO)', 'ใบสั่งสินค้า', 'PO'], ['ใบสั่งสินค้า', 'po']) || '-';
+        if (!model && po === '-') return;
+
+        const hgn = pickField(row, ['เลขที่ออเดอร์ (HGN)', 'เลขที่ออเดอร์', 'HGN'], ['hgn', 'ออเดอร์']) || '-';
+        const customer = pickField(row, ['ชื่อลูกค้า', 'ลูกค้า', 'Customer'], ['ลูกค้า', 'customer']) || '-';
+        const size = pickField(row, ['ขนาด', 'Size'], ['ขนาด', 'size']) || '-';
+        const qtyRaw = pickField(row, ['จำนวนที่ลูกค้าสั่ง', 'จำนวนที่สั่ง', 'จำนวน', 'Qty'], ['จำนวน', 'qty']);
+        const qty = parseInt(String(qtyRaw).replace(/[^\d-]/g, ''), 10) || 0;
+        const material = pickField(row, ['โครงสร้าง (วัสดุ)', 'วัสดุโครงสร้าง', 'โครงสร้าง'], ['โครงสร้าง (วัสดุ)', 'วัสดุ']);
+        const color = pickField(row, ['โครงสร้าง (สี)', 'สีโครงสร้าง'], ['โครงสร้าง (สี)']) || '-';
+        const code = pickField(row, ['รหัสโครงสร้าง'], ['รหัสโครงสร้าง']) || '-';
+        const topMat = pickField(row, ['หน้าโต๊ะ วัสดุ', 'หน้าโต๊ะ (วัสดุ)'], ['หน้าโต๊ะ วัสดุ', 'หน้าโต๊ะ']) || '-';
+        const cleanTop = topMat === 'ไม่กำหนด' ? '-' : topMat;
+        const dueDate = pickField(row, ['กำหนดส่ง', 'Due Date'], ['กำหนดส่ง', 'due']) || '-';
+
+        const key = model.trim().toLowerCase();
+        const prodInfo = prodMap.get(key) || {};
+        const specInfo = specMap.get(key) || {};
+        const finalImg = prodInfo.img || specInfo.img || '';
+        const isSteel = steelPattern.test(`${material} ${model} ${cleanTop}`);
+
+        result.push({
+          id: idCounter++,
+          hgn,
+          po,
+          customers: customer,
+          model,
+          category: prodInfo.category || inferCategoryFromModel(model),
+          material: material || 'ไม่ระบุ',
+          colors: color,
+          codes: code,
+          top_mat: cleanTop,
+          size,
+          qty,
+          due_date: dueDate,
+          spec: specInfo.spec || '',
+          img: finalImg,
+          isSteel
+        });
+      });
+
+      return result;
+    }
+
+    function buildProductMaster(productRows = [], ordersList = [], specRows = []) {
+      const specMap = new Map();
+      specRows.forEach(s => {
+        const name = pickField(s, ['ชื่อสินค้า (Model)', 'ชื่อสินค้า', 'Model'], ['ชื่อสินค้า', 'model']);
+        if (!name) return;
+        const specVal = pickField(s, ['Spec', 'สเปก', 'รายละเอียด', 'BOM'], ['spec', 'สเปก', 'bom']);
+        if (specVal) specMap.set(name.trim().toLowerCase(), specVal);
+      });
+
+      // Collect order stats & materials per model
+      const orderStatsMap = new Map();
+      ordersList.forEach(o => {
+        const key = String(o.model || '').trim().toLowerCase();
+        if (!key) return;
+        if (!orderStatsMap.has(key)) {
+          orderStatsMap.set(key, {
+            orderCount: 0,
+            totalQty: 0,
+            materials: new Set(),
+            colors: new Set(),
+            topMats: new Set(),
+            spec: o.spec || '',
+            img: o.img || '',
+            category: o.category || ''
+          });
+        }
+        const st = orderStatsMap.get(key);
+        st.orderCount += 1;
+        st.totalQty += Number(o.qty) || 0;
+        if (o.material && o.material !== '-') st.materials.add(o.material);
+        if (o.colors && o.colors !== '-') st.colors.add(o.colors);
+        if (o.top_mat && o.top_mat !== '-') st.topMats.add(o.top_mat);
+        if (!st.spec && o.spec) st.spec = o.spec;
+        if (!st.img && o.img) st.img = o.img;
+      });
+
+      const masterList = [];
+      const seenKeys = new Set();
+      let pmId = 1;
+
+      // 1. Primary source: Product tab rows
+      productRows.forEach(p => {
+        const name = pickField(p, ['ชื่อสินค้า', 'ชื่อสินค้า (Model)', 'Model'], ['ชื่อสินค้า', 'model']);
+        if (!name) return;
+        const key = name.trim().toLowerCase();
+        if (seenKeys.has(key)) return;
+        seenKeys.add(key);
+
+        const category = pickField(p, ['หมวดหมู่', 'Category'], ['หมวดหมู่', 'category']) || inferCategoryFromModel(name);
+        const img = pickField(p, ['ลิงก์รูปภาพ', 'รูปภาพ', 'Image'], ['รูปภาพ', 'image']);
+        const status = pickField(p, ['สถานะ', 'Status'], ['สถานะ', 'status']) || 'ใช้งานปกติ';
+        const bomCol = pickField(p, ['BOM', 'รายการวัตถุดิบ', 'รายการวัตถุดิบ (BOM)', 'วัตถุดิบ', 'Spec'], ['bom', 'วัตถุดิบ', 'spec']);
+        const st = orderStatsMap.get(key);
+
+        masterList.push({
+          id: pmId++,
+          name: name.trim(),
+          category,
+          status,
+          img: img || (st ? st.img : ''),
+          bom: bomCol || specMap.get(key) || (st ? st.spec : ''),
+          materials: st ? Array.from(st.materials) : [],
+          colors: st ? Array.from(st.colors) : [],
+          topMats: st ? Array.from(st.topMats) : [],
+          orderCount: st ? st.orderCount : 0,
+          totalQty: st ? st.totalQty : 0
+        });
+      });
+
+      // 2. Fallback / Supplement: if Product tab is empty, derive from ordersList
+      if (masterList.length === 0) {
+        ordersList.forEach(o => {
+          const name = String(o.model || '').trim();
+          if (!name) return;
+          const key = name.toLowerCase();
+          if (seenKeys.has(key)) return;
+          seenKeys.add(key);
+
+          const st = orderStatsMap.get(key);
+          masterList.push({
+            id: pmId++,
+            name,
+            category: o.category || inferCategoryFromModel(name),
+            status: 'ใช้งานปกติ',
+            img: o.img || '',
+            bom: specMap.get(key) || o.spec || '',
+            materials: st ? Array.from(st.materials) : [],
+            colors: st ? Array.from(st.colors) : [],
+            topMats: st ? Array.from(st.topMats) : [],
+            orderCount: st ? st.orderCount : 1,
+            totalQty: st ? st.totalQty : (o.qty || 0)
+          });
+        });
+      }
+
+      return masterList;
+    }
+
+    function parseSheetIdAndGid(input, fallbackId) {
+      const str = String(input || '').trim();
+      const idMatch = str.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+      const gidMatch = str.match(/[?&#]gid=(\d+)/);
+      return {
+        sheetId: idMatch ? idMatch[1] : fallbackId,
+        gid: gidMatch ? gidMatch[1] : null,
+        sheetName: !idMatch && str ? str : null
+      };
+    }
+
+    function buildGvizCsvUrl(sheetId, gid, sheetName) {
+      const base = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv`;
+      if (gid !== null && gid !== undefined) return `${base}&gid=${gid}&_ts=${Date.now()}`;
+      if (sheetName) return `${base}&sheet=${encodeURIComponent(sheetName)}&_ts=${Date.now()}`;
+      return `${base}&_ts=${Date.now()}`;
+    }
+
+    function loadSavedConfig() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          return {
+            orderUrl: parsed.orderUrl || DEFAULT_ORDER_URL,
+            productSheet: parsed.productSheet || 'Product',
+            specSheet: parsed.specSheet || 'Spec',
+            appsScriptUrl: parsed.appsScriptUrl || ''
+          };
+        }
+      } catch (e) {}
+      return {
+        orderUrl: DEFAULT_ORDER_URL,
+        productSheet: 'Product',
+        specSheet: 'Spec',
+        appsScriptUrl: ''
+      };
+    }
+
+    function saveConfig(cfg) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
+      } catch (e) {}
+    }
+
+    // ย่อขนาดรูปภาพก่อนอัปโหลดเพื่อให้ส่งเข้า Google Drive ได้รวดเร็ว
+    function resizeImageToBase64(file, maxDim = 1200) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error('READ_FAILED'));
+        reader.onload = (ev) => {
+          const img = new Image();
+          img.onerror = () => reject(new Error('IMAGE_INVALID'));
+          img.onload = () => {
+            let w = img.width;
+            let h = img.height;
+            if (w > maxDim || h > maxDim) {
+              if (w >= h) {
+                h = Math.round((h * maxDim) / w);
+                w = maxDim;
+              } else {
+                w = Math.round((w * maxDim) / h);
+                h = maxDim;
+              }
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, w, h);
+            ctx.drawImage(img, 0, 0, w, h);
+            const mimeType = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+            const dataUrl = canvas.toDataURL(mimeType, 0.85);
+            const base64 = dataUrl.split(',')[1] || '';
+            resolve({ base64, mimeType, fileName: file.name, previewUrl: dataUrl });
+          };
+          img.src = ev.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function saveProductToGoogleSheet(payload) {
+      const cfg = loadSavedConfig();
+      const scriptUrl = String(cfg.appsScriptUrl || '').trim();
+      if (!scriptUrl) {
+        return { skipped: true };
+      }
+
+      const bodyPayload = {
+        ...payload,
+        productSheetName: cfg.productSheet && !cfg.productSheet.includes('http') ? cfg.productSheet : 'Product',
+        specSheetName: cfg.specSheet && !cfg.specSheet.includes('http') ? cfg.specSheet : 'Spec'
+      };
+
+      const res = await fetch(scriptUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(bodyPayload)
+      });
+
+      const text = await res.text();
+      let parsed = null;
+      try {
+        parsed = JSON.parse(text);
+      } catch (e) {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return { ok: true, imgUrl: payload.imgUrl || '' };
+      }
+
+      if (!parsed.ok) {
+        throw new Error(parsed.error || 'Apps Script error');
+      }
+      return parsed;
+    }
+
+    async function fetchCsvFromGoogleSheet(url) {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const text = await res.text();
+      if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
+        throw new Error('NOT_PUBLIC');
+      }
+      return parseCsvText(text);
+    }
+
+    async function syncFromGoogleSheets(isAuto = false) {
+      const cfg = loadSavedConfig();
+      const orderParsed = parseSheetIdAndGid(cfg.orderUrl, DEFAULT_SHEET_ID);
+      const baseSheetId = orderParsed.sheetId || DEFAULT_SHEET_ID;
+      const productParsed = parseSheetIdAndGid(cfg.productSheet, baseSheetId);
+      const specParsed = parseSheetIdAndGid(cfg.specSheet, baseSheetId);
+
+      const refreshIcon = document.getElementById('refreshIcon');
+      const bannerIcon = document.getElementById('bannerIcon');
+      const bannerMessage = document.getElementById('bannerMessage');
+      const btnRetry = document.getElementById('btnBannerRetry');
+
+      if (refreshIcon) refreshIcon.classList.add('animate-spin');
+      if (bannerIcon) bannerIcon.classList.add('animate-spin');
+      if (btnRetry) {
+        btnRetry.disabled = true;
+        btnRetry.textContent = 'กำลังดึงข้อมูล...';
+      }
+
+      try {
+        const orderUrl = buildGvizCsvUrl(baseSheetId, orderParsed.gid ?? '0', orderParsed.sheetName);
+        const prodUrl = buildGvizCsvUrl(productParsed.sheetId, productParsed.gid, productParsed.sheetName || 'Product');
+        const specUrl = buildGvizCsvUrl(specParsed.sheetId, specParsed.gid, specParsed.sheetName || 'Spec');
+
+        const [orderRows, rawProdRows, rawSpecRows] = await Promise.all([
+          fetchCsvFromGoogleSheet(orderUrl),
+          fetchCsvFromGoogleSheet(prodUrl).catch(() => []),
+          fetchCsvFromGoogleSheet(specUrl).catch(() => [])
+        ]);
+
+        if (!orderRows || orderRows.length === 0) throw new Error('EMPTY_ORDER');
+
+        const isProdTable = (rows) => {
+          if (!rows || !rows.length) return false;
+          const h = Object.keys(rows[0]).join(' ').toLowerCase();
+          return (h.includes('ลิงก์รูปภาพ') || h.includes('หมวดหมู่')) && !h.includes('ใบสั่งสินค้า');
+        };
+        const isSpecTable = (rows) => {
+          if (!rows || !rows.length) return false;
+          const h = Object.keys(rows[0]).join(' ').toLowerCase();
+          return (h.includes('spec') || h.includes('สเปก')) && !h.includes('ใบสั่งสินค้า');
+        };
+
+        const prodRows = isProdTable(rawProdRows) ? rawProdRows : [];
+        const specRows = isSpecTable(rawSpecRows) ? rawSpecRows : [];
+
+        const list = processSyncedSheets(orderRows, prodRows, specRows);
+        if (list.length === 0) throw new Error('NO_ORDER_ROWS');
+
+        PRODUCTS = list;
+        PRODUCT_MASTER = buildProductMaster(prodRows, list, specRows);
+        state.isSynced = true;
+        state.syncSource = 'sheets';
+        state.lastSyncTime = new Date();
+        state.material = 'ALL';
+
+        updateSyncUI();
+        renderAll();
+        if (!isAuto) showToast(`ดึงข้อมูลจาก Google Sheets สำเร็จ (${PRODUCTS.length} ออเดอร์, ${PRODUCT_MASTER.length} สินค้า)`);
+      } catch (err) {
+        state.isSynced = false;
+        if (bannerIcon) bannerIcon.classList.remove('animate-spin');
+        if (bannerMessage) {
+          bannerMessage.innerHTML = 'ไม่สามารถดึงข้อมูลจาก <strong>Google Sheets</strong> ได้ — กรุณาตรวจสอบว่าได้เปิดแชร์ไฟล์ Spec เป็น <strong>"ทุกคนที่มีลิงก์ (ผู้มีสิทธิ์อ่าน)"</strong> แล้วกด <strong>ดึงข้อมูลอีกครั้ง</strong> (หรือกด <strong>นำเข้า CSV</strong>)';
+        }
+        updateSyncUI();
+        if (!isAuto) showToast('ดึงข้อมูลไม่สำเร็จ กรุณาเช็กสิทธิ์แชร์ไฟล์ Google Sheets');
+      } finally {
+        if (refreshIcon) refreshIcon.classList.remove('animate-spin');
+        if (btnRetry) {
+          btnRetry.disabled = false;
+          btnRetry.textContent = 'ดึงข้อมูลอีกครั้ง';
+        }
+      }
+    }
+
+    async function handleLocalCsvFiles(fileList) {
+      const files = Array.from(fileList || []);
+      if (!files.length) return;
+
+      let orderRows = [];
+      let productRows = [];
+      let specRows = [];
+
+      for (const file of files) {
+        const text = await file.text();
+        const rows = parseCsvText(text);
+        if (!rows.length) continue;
+
+        const headers = Object.keys(rows[0]).join(' ').toLowerCase();
+        const fname = file.name.toLowerCase();
+
+        if (headers.includes('hgn') || headers.includes('ใบสั่งสินค้า') || headers.includes('โครงสร้าง (วัสดุ)') || fname.includes('order')) {
+          orderRows = rows;
+        } else if (headers.includes('ลิงก์รูปภาพ') || headers.includes('หมวดหมู่') || fname.includes('product')) {
+          productRows = rows;
+        } else {
+          specRows = rows;
+        }
+      }
+
+      if (!orderRows.length) {
+        showToast('กรุณาเลือกไฟล์ Spec_Order.csv ที่มีคอลัมน์ HGN / PO');
+        return;
+      }
+
+      const list = processSyncedSheets(orderRows, productRows, specRows);
+      if (!list.length) {
+        showToast('ไม่พบรายการสั่งผลิตในไฟล์ CSV ที่เลือก');
+        return;
+      }
+
+      PRODUCTS = list;
+      PRODUCT_MASTER = buildProductMaster(productRows, list, specRows);
+      state.isSynced = true;
+      state.syncSource = 'csv';
+      state.lastSyncTime = new Date();
+      state.material = 'ALL';
+
+      updateSyncUI();
+      renderAll();
+      showToast(`นำเข้า CSV สำเร็จ! (${PRODUCTS.length} ออเดอร์, ${PRODUCT_MASTER.length} สินค้า)`);
+    }
+
+    // =========================================================================
+    // 4. FILTERING, SORTING & RENDERING
+    // =========================================================================
+    function getActiveTabProducts() {
+      if (state.activeTab === 'metal') {
+        return PRODUCTS.filter(item => item.isSteel);
+      }
+      return PRODUCTS;
+    }
+
+    function updateTabUI() {
+      const prodCount = PRODUCTS.length;
+      const metalCount = PRODUCTS.filter(p => p.isSteel).length;
+      const masterCount = PRODUCT_MASTER.length;
+      const prodBadge = document.getElementById('tabProductionCount');
+      const metalBadge = document.getElementById('tabMetalCount');
+      const masterBadge = document.getElementById('tabProductsCount');
+      if (prodBadge) prodBadge.textContent = prodCount.toLocaleString();
+      if (metalBadge) metalBadge.textContent = metalCount.toLocaleString();
+      if (masterBadge) masterBadge.textContent = masterCount.toLocaleString();
+
+      document.querySelectorAll('.main-tab-btn').forEach(btn => {
+        const isActive = btn.dataset.tab === state.activeTab;
+        const badge = btn.querySelector('span > span');
+        const label = btn.querySelector('span');
+        if (isActive) {
+          btn.className = 'main-tab-btn group relative flex flex-col items-center justify-center px-5 sm:px-7 py-3 border-b-[3px] border-emerald-500 text-slate-900 transition whitespace-nowrap';
+          if (label) label.className = 'font-display text-xs sm:text-sm font-semibold tracking-wide flex items-center gap-1.5';
+          if (badge) badge.className = 'px-1.5 py-0.2 rounded-md text-[10px] font-mono bg-emerald-100 text-emerald-700';
+        } else {
+          btn.className = 'main-tab-btn group relative flex flex-col items-center justify-center px-5 sm:px-7 py-3 border-b-[3px] border-transparent text-slate-500 hover:text-slate-800 transition whitespace-nowrap';
+          if (label) label.className = 'font-display text-xs sm:text-sm font-medium tracking-wide flex items-center gap-1.5';
+          if (badge) badge.className = 'px-1.5 py-0.2 rounded-md text-[10px] font-mono bg-slate-200/80 text-slate-600';
+        }
+      });
+    }
+
+    function getFilteredProducts() {
+      const q = state.search.trim().toLowerCase();
+      const baseList = getActiveTabProducts();
+      let list = baseList.filter(item => {
+        if (state.material !== 'ALL' && item.material !== state.material) return false;
+        if (state.category !== 'ALL' && item.category !== state.category) return false;
+        if (state.imageFilter === 'HAS_IMG' && !item.img) return false;
+        if (state.imageFilter === 'NO_IMG' && item.img) return false;
+
+        if (q) {
+          const hay = [
+            item.hgn, item.po, item.customers, item.model,
+            item.material, item.colors, item.codes, item.spec, item.due_date
+          ].join(' ').toLowerCase();
+          if (!hay.includes(q)) return false;
+        }
+        return true;
+      });
+
+      list.sort((a, b) => {
+        if (state.sort === 'po_desc') return String(b.po).localeCompare(String(a.po), 'th', { numeric: true });
+        if (state.sort === 'po_asc') return String(a.po).localeCompare(String(b.po), 'th', { numeric: true });
+        if (state.sort === 'hgn_asc') return String(a.hgn).localeCompare(String(b.hgn), 'th', { numeric: true });
+        if (state.sort === 'qty_desc') return (b.qty || 0) - (a.qty || 0);
+        if (state.sort === 'model_asc') return String(a.model).localeCompare(String(b.model), 'th');
+        return 0;
+      });
+
+      return list;
+    }
+
+    function updateSyncUI() {
+      const dot = document.getElementById('syncStatusDot');
+      const text = document.getElementById('syncStatusText');
+      const banner = document.getElementById('syncBanner');
+
+      if (banner) banner.classList.toggle('hidden', state.isSynced);
+
+      if (state.isSynced && state.lastSyncTime) {
+        const t = state.lastSyncTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+        dot.className = 'w-1.5 h-1.5 rounded-full bg-emerald-400';
+        text.textContent = state.syncSource === 'csv'
+          ? `นำเข้า CSV ล่าสุด ${t} น.`
+          : `ซิงก์ Sheets ล่าสุด ${t} น.`;
+      } else {
+        dot.className = 'w-1.5 h-1.5 rounded-full bg-amber-400';
+        text.textContent = 'ข้อมูลตัวอย่างเบื้องต้น';
+      }
+    }
+
+    function updateHeaderSummary() {
+      const el = document.getElementById('headerSummaryText');
+      if (!el) return;
+
+      if (state.activeTab === 'products') {
+        const withImg = PRODUCT_MASTER.filter(p => p.img).length;
+        el.textContent = `สินค้าทั้งหมด (Product Master): ${PRODUCT_MASTER.length.toLocaleString()} รายการ • มีรูปภาพ ${withImg.toLocaleString()} รายการ`;
+        return;
+      }
+
+      const baseList = getActiveTabProducts();
+      const totalQty = baseList.reduce((sum, p) => sum + (Number(p.qty) || 0), 0);
+      const uniqueModels = new Set(baseList.map(p => p.model)).size;
+      const prefix = state.activeTab === 'metal' ? 'งานโลหะ / ขาเหล็ก' : 'งานผลิตทั้งหมด';
+      el.textContent = `${prefix}: พบ ${baseList.length.toLocaleString()} รายการสั่งผลิต (${uniqueModels} รุ่น) • รวม ${totalQty.toLocaleString()} ชิ้น`;
+    }
+
+    function renderMaterialPills() {
+      const select = document.getElementById('materialFilter');
+      if (!select) return;
+
+      const baseList = getActiveTabProducts();
+      const counts = {};
+      baseList.forEach(p => {
+        counts[p.material] = (counts[p.material] || 0) + 1;
+      });
+      const materials = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+
+      if (state.material !== 'ALL' && !counts[state.material]) {
+        state.material = 'ALL';
+      }
+
+      const prefix = state.activeTab === 'metal' ? 'ประเภทขาเหล็ก' : 'โครงสร้าง / วัสดุ';
+      let html = `<option value="ALL">${prefix}: ทั้งหมด (${baseList.length.toLocaleString()})</option>`;
+      materials.forEach(m => {
+        html += `<option value="${escapeHtml(m)}">${escapeHtml(m)} (${counts[m].toLocaleString()})</option>`;
+      });
+
+      select.innerHTML = html;
+      select.value = state.material;
+    }
+
+    function renderTable(list) {
+      const tbody = document.getElementById('tableBody');
+      if (!tbody) return;
+
+      tbody.innerHTML = list.map(item => {
+        const thumbUrl = getDriveThumbUrl(item.img, 120);
+        const badgeCls = getMaterialBadgeClass(item.material);
+        const colorCode = [item.colors !== '-' ? item.colors : '', item.codes !== '-' ? item.codes : ''].filter(Boolean).join(' • ');
+
+        return `
+          <tr data-id="${item.id}" class="product-row hover:bg-slate-50 transition cursor-pointer group">
+            <td class="py-3.5 px-4 align-top whitespace-nowrap">
+              <div class="font-mono text-xs font-semibold text-sky-700">${escapeHtml(item.hgn)}</div>
+              <div class="font-mono text-[11px] text-slate-500 mt-0.5">${escapeHtml(item.po)}</div>
+            </td>
+            <td class="py-3.5 px-4 align-top max-w-[200px]">
+              <div class="text-slate-700 text-xs sm:text-sm leading-snug break-words">${escapeHtml(item.customers)}</div>
+            </td>
+            <td class="py-3.5 px-4 align-top min-w-[240px]">
+              <div class="flex items-start gap-3">
+                ${thumbUrl
+                  ? `<img src="${escapeHtml(thumbUrl)}" alt="" loading="lazy" onerror="this.style.display='none'" class="w-10 h-10 rounded-lg object-cover bg-slate-50 border border-slate-200 shrink-0" />`
+                  : `<div class="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400 shrink-0">
+                       <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Z" /></svg>
+                     </div>`
+                }
+                <div class="min-w-0">
+                  <div class="font-medium text-slate-900 group-hover:text-blue-600 transition break-words">${escapeHtml(item.model)}</div>
+                  <div class="text-[11px] text-slate-500 mt-0.5 flex items-center flex-wrap gap-1.5">
+                    <span>${escapeHtml(item.category)}</span>
+                    ${colorCode ? `<span>• ${escapeHtml(colorCode)}</span>` : ''}
+                  </div>
+                </div>
+              </div>
+            </td>
+            <td class="py-3.5 px-4 align-top whitespace-nowrap">
+              <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium ${badgeCls}">
+                ${escapeHtml(item.material)}
+              </span>
+            </td>
+            <td class="py-3.5 px-4 align-top max-w-[200px]">
+              ${item.spec
+                ? `<div class="text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 whitespace-pre-wrap break-words">${escapeHtml(item.spec)}</div>`
+                : `<span class="text-xs text-slate-400">-</span>`
+              }
+            </td>
+            <td class="py-3.5 px-4 align-top text-right whitespace-nowrap">
+              <span class="font-display font-bold text-amber-600">${(item.qty || 0).toLocaleString()}</span>
+              <span class="text-xs text-slate-500 ml-0.5">ชิ้น</span>
+            </td>
+            <td class="py-3.5 px-4 align-top whitespace-nowrap text-xs text-slate-600 font-mono">
+              ${escapeHtml(item.due_date)}
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      tbody.querySelectorAll('.product-row').forEach(row => {
+        row.addEventListener('click', () => {
+          const id = Number(row.dataset.id);
+          const found = PRODUCTS.find(p => p.id === id);
+          if (found) openDetailModal(found);
+        });
+      });
+    }
+
+    function renderCards(list) {
+      const container = document.getElementById('cardViewSection');
+      if (!container) return;
+
+      container.innerHTML = list.map(item => {
+        const thumbUrl = getDriveThumbUrl(item.img, 480);
+        const badgeCls = getMaterialBadgeClass(item.material);
+
+        return `
+          <article data-id="${item.id}" class="product-card bg-white border border-slate-200 hover:border-amber-400 rounded-2xl overflow-hidden flex flex-col cursor-pointer transition group shadow-sm hover:shadow-md">
+            <div class="relative h-44 bg-slate-50 border-b border-slate-200 flex items-center justify-center overflow-hidden">
+              ${thumbUrl
+                ? `<img src="${escapeHtml(thumbUrl)}" alt="${escapeHtml(item.model)}" loading="lazy" onerror="this.style.display='none'" class="w-full h-full object-contain p-2 group-hover:scale-105 transition duration-300" />`
+                : `<div class="text-slate-400 flex flex-col items-center gap-1">
+                     <svg class="w-9 h-9 opacity-60" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Z" /></svg>
+                     <span class="text-[11px]">ไม่มีรูปภาพ</span>
+                   </div>`
+              }
+              <span class="absolute top-2.5 left-2.5 px-2.5 py-0.5 rounded-lg text-[11px] font-medium backdrop-blur-md ${badgeCls}">
+                ${escapeHtml(item.material)}
+              </span>
+              <span class="absolute top-2.5 right-2.5 px-2.5 py-0.5 rounded-lg text-xs font-display font-bold bg-white/95 border border-slate-200 text-amber-600 shadow-sm">
+                ${(item.qty || 0).toLocaleString()} ชิ้น
+              </span>
+            </div>
+
+            <div class="p-4 flex-1 flex flex-col justify-between gap-3">
+              <div>
+                <div class="flex items-center justify-between gap-2 text-[11px] font-mono mb-1.5">
+                  <span class="text-sky-700 font-semibold truncate">${escapeHtml(item.hgn)}</span>
+                  <span class="text-slate-500 shrink-0">${escapeHtml(item.po)}</span>
+                </div>
+                <h3 class="font-display font-semibold text-sm text-slate-900 group-hover:text-blue-600 transition line-clamp-2">
+                  ${escapeHtml(item.model)}
+                </h3>
+                <p class="text-xs text-slate-500 mt-1 truncate">ลูกค้า: ${escapeHtml(item.customers)}</p>
+                ${item.spec
+                  ? `<div class="mt-2 text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 line-clamp-2">${escapeHtml(item.spec)}</div>`
+                  : ''
+                }
+              </div>
+
+              <div class="pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                <span>${escapeHtml(item.category)}</span>
+                <span class="font-mono text-slate-600">ส่ง: ${escapeHtml(item.due_date)}</span>
+              </div>
+            </div>
+          </article>
+        `;
+      }).join('');
+
+      container.querySelectorAll('.product-card').forEach(card => {
+        card.addEventListener('click', () => {
+          const id = Number(card.dataset.id);
+          const found = PRODUCTS.find(p => p.id === id);
+          if (found) openDetailModal(found);
+        });
+      });
+    }
+
+    function renderAll() {
+      updateTabUI();
+      updateHeaderSummary();
+
+      const ordersFilterSec = document.getElementById('ordersFilterSection');
+      const tableSec = document.getElementById('tableViewSection');
+      const cardSec = document.getElementById('cardViewSection');
+      const emptySec = document.getElementById('emptyState');
+      const productsTabSec = document.getElementById('productsTabSection');
+
+      if (state.activeTab === 'products') {
+        ordersFilterSec.classList.add('hidden');
+        tableSec.classList.add('hidden');
+        cardSec.classList.add('hidden');
+        emptySec.classList.add('hidden');
+        productsTabSec.classList.remove('hidden');
+        renderProductMaster();
+        return;
+      }
+
+      productsTabSec.classList.add('hidden');
+      ordersFilterSec.classList.remove('hidden');
+
+      renderMaterialPills();
+
+      const filtered = getFilteredProducts();
+      const totalFilteredQty = filtered.reduce((sum, p) => sum + (Number(p.qty) || 0), 0);
+      const countEl = document.getElementById('resultCountText');
+      if (countEl) {
+        countEl.textContent = `แสดง ${filtered.length.toLocaleString()} รายการ (${totalFilteredQty.toLocaleString()} ชิ้น)`;
+      }
+
+      if (filtered.length === 0) {
+        tableSec.classList.add('hidden');
+        cardSec.classList.add('hidden');
+        emptySec.classList.remove('hidden');
+        return;
+      }
+
+      emptySec.classList.add('hidden');
+      if (state.view === 'table') {
+        tableSec.classList.remove('hidden');
+        cardSec.classList.add('hidden');
+        renderTable(filtered);
+      } else {
+        tableSec.classList.add('hidden');
+        cardSec.classList.remove('hidden');
+        renderCards(filtered);
+      }
+    }
+
+    // =========================================================================
+    // 4.5 PRODUCT MASTER (สินค้าทั้งหมด) RENDERING & MODALS
+    // =========================================================================
+    function getFilteredProductMaster() {
+      const q = pmState.search.trim().toLowerCase();
+      let list = PRODUCT_MASTER.filter(p => {
+        if (pmState.category !== 'ALL' && p.category !== pmState.category) return false;
+        if (q) {
+          const hay = [p.name, p.category, p.status, p.bom, ...(p.materials || [])].join(' ').toLowerCase();
+          if (!hay.includes(q)) return false;
+        }
+        return true;
+      });
+
+      list.sort((a, b) => {
+        const cmp = String(a.name).localeCompare(String(b.name), 'th', { numeric: true });
+        return pmState.sortDir === 'asc' ? cmp : -cmp;
+      });
+
+      return list;
+    }
+
+    function renderPmCategoryOptions() {
+      const select = document.getElementById('pmCategoryFilter');
+      if (!select) return;
+      const counts = {};
+      PRODUCT_MASTER.forEach(p => {
+        const c = p.category || 'Other';
+        counts[c] = (counts[c] || 0) + 1;
+      });
+      const cats = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+      if (pmState.category !== 'ALL' && !counts[pmState.category]) {
+        pmState.category = 'ALL';
+      }
+      let html = `<option value="ALL">หมวดหมู่: ทั้งหมด (${PRODUCT_MASTER.length.toLocaleString()})</option>`;
+      cats.forEach(c => {
+        html += `<option value="${escapeHtml(c)}">${escapeHtml(c)} (${counts[c].toLocaleString()})</option>`;
+      });
+      select.innerHTML = html;
+      select.value = pmState.category;
+    }
+
+    function getStatusBadgeClass(status) {
+      if (status === 'ปิดใช้งาน') return 'bg-rose-50 text-rose-700 border border-rose-200';
+      if (status === 'รอดำเนินการ') return 'bg-amber-50 text-amber-700 border border-amber-200';
+      return 'bg-emerald-50 text-emerald-700 border border-emerald-200';
+    }
+
+    function renderProductMaster() {
+      renderPmCategoryOptions();
+      const list = getFilteredProductMaster();
+
+      const subtitle = document.getElementById('pmSubtitleCount');
+      if (subtitle) {
+        subtitle.textContent = `แสดง ${list.length.toLocaleString()} จากทั้งหมด ${PRODUCT_MASTER.length.toLocaleString()} รายการสินค้า`;
+      }
+
+      const sortBadge = document.getElementById('pmSortBadge');
+      if (sortBadge) {
+        sortBadge.textContent = pmState.sortDir === 'asc' ? '↑' : '↓';
+      }
+
+      const tbody = document.getElementById('pmTableBody');
+      const emptyEl = document.getElementById('pmEmptyState');
+      if (!tbody || !emptyEl) return;
+
+      if (list.length === 0) {
+        tbody.innerHTML = '';
+        emptyEl.classList.remove('hidden');
+        return;
+      }
+
+      emptyEl.classList.add('hidden');
+
+      tbody.innerHTML = list.map(item => {
+        const thumbUrl = getDriveThumbUrl(item.img, 140);
+        const statusCls = getStatusBadgeClass(item.status);
+        const hasBom = Boolean(item.bom || (item.materials && item.materials.length > 0));
+
+        return `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="py-3 px-4 text-center align-middle">
+              ${thumbUrl
+                ? `<button type="button" data-pm-zoom="${item.id}" class="pm-zoom-btn w-14 h-14 mx-auto rounded-xl bg-white border border-slate-200 overflow-hidden flex items-center justify-center hover:ring-2 hover:ring-blue-400 transition shadow-sm">
+                     <img src="${escapeHtml(thumbUrl)}" alt="${escapeHtml(item.name)}" loading="lazy" onerror="this.style.display='none'" class="w-full h-full object-contain p-0.5" />
+                   </button>`
+                : `<div class="w-14 h-14 mx-auto rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400">
+                     <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Z" /></svg>
+                   </div>`
+              }
+            </td>
+            <td class="py-3 px-4 align-middle">
+              <button type="button" data-pm-bom="${item.id}" class="pm-bom-btn text-left font-display font-semibold text-blue-600 hover:text-blue-700 hover:underline transition break-words">
+                ${escapeHtml(item.name)}
+              </button>
+              ${item.orderCount > 0
+                ? `<div class="text-[11px] text-slate-500 mt-0.5">มีคำสั่งผลิต ${item.orderCount.toLocaleString()} PO (${item.totalQty.toLocaleString()} ชิ้น)</div>`
+                : ''
+              }
+            </td>
+            <td class="py-3 px-4 align-middle whitespace-nowrap text-slate-700 text-xs sm:text-sm">
+              ${escapeHtml(item.category || '-')}
+            </td>
+            <td class="py-3 px-4 align-middle text-center whitespace-nowrap">
+              <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium ${statusCls}">
+                ${escapeHtml(item.status || 'ใช้งานปกติ')}
+              </span>
+            </td>
+            <td class="py-3 px-4 align-middle text-center whitespace-nowrap">
+              <button
+                type="button"
+                data-pm-bom="${item.id}"
+                class="pm-bom-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-display font-medium transition ${
+                  hasBom
+                    ? 'bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200'
+                    : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-300'
+                }"
+              >
+                <svg class="w-3.5 h-3.5 text-amber-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z" />
+                </svg>
+                ข้อมูล BOM
+              </button>
+            </td>
+            <td class="py-3 px-4 align-middle text-center whitespace-nowrap">
+              <button
+                type="button"
+                data-pm-edit="${item.id}"
+                class="pm-edit-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-xs font-display font-medium transition"
+              >
+                <svg class="w-3.5 h-3.5 text-amber-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
+                </svg>
+                แก้ไข
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      tbody.querySelectorAll('.pm-zoom-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const found = PRODUCT_MASTER.find(p => p.id === Number(btn.dataset.pmZoom));
+          if (found && found.img) {
+            const lbImg = document.getElementById('lightboxImg');
+            lbImg.src = getDriveThumbUrl(found.img, 1600);
+            document.getElementById('lightboxModal').classList.remove('hidden');
+          }
+        });
+      });
+
+      tbody.querySelectorAll('.pm-bom-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const found = PRODUCT_MASTER.find(p => p.id === Number(btn.dataset.pmBom));
+          if (found) openBomModal(found);
+        });
+      });
+
+      tbody.querySelectorAll('.pm-edit-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const found = PRODUCT_MASTER.find(p => p.id === Number(btn.dataset.pmEdit));
+          if (found) openProductFormModal(found);
+        });
+      });
+    }
+
+    function openBomModal(product) {
+      pmState.selectedProduct = product;
+      document.getElementById('bomModalTitle').textContent = product.name || '-';
+      document.getElementById('bomModalCategory').textContent = product.category || '-';
+      const statusEl = document.getElementById('bomModalStatus');
+      statusEl.textContent = product.status || 'ใช้งานปกติ';
+      statusEl.className = `px-2 py-0.5 rounded-md text-[11px] font-medium ${getStatusBadgeClass(product.status)}`;
+
+      const imgEl = document.getElementById('bomModalImg');
+      const noImgEl = document.getElementById('bomModalNoImg');
+      const thumb = getDriveThumbUrl(product.img, 500);
+      if (thumb) {
+        imgEl.src = thumb;
+        imgEl.classList.remove('hidden');
+        noImgEl.classList.add('hidden');
+      } else {
+        imgEl.src = '';
+        imgEl.classList.add('hidden');
+        noImgEl.classList.remove('hidden');
+      }
+
+      document.getElementById('bomModalOrderStats').textContent = product.orderCount > 0
+        ? `สั่งผลิตแล้ว ${product.orderCount.toLocaleString()} PO (รวม ${product.totalQty.toLocaleString()} ชิ้น)`
+        : 'ยังไม่มีประวัติในแท็บ Order';
+      document.getElementById('bomModalMaterials').textContent = (product.materials && product.materials.length) ? product.materials.join(', ') : '-';
+      document.getElementById('bomModalColors').textContent = (product.colors && product.colors.length) ? product.colors.join(', ') : '-';
+      document.getElementById('bomModalTopMats').textContent = (product.topMats && product.topMats.length) ? product.topMats.join(', ') : '-';
+      document.getElementById('bomModalText').textContent = product.bom || 'ยังไม่ได้ระบุข้อมูล BOM / Spec สำหรับสินค้านี้';
+
+      document.getElementById('bomModal').classList.remove('hidden');
+    }
+
+    function closeBomModal() {
+      document.getElementById('bomModal').classList.add('hidden');
+      pmState.selectedProduct = null;
+    }
+
+    function updateProductImgPreview(previewSrc, labelText) {
+      const imgEl = document.getElementById('pfImgPreview');
+      const iconEl = document.getElementById('pfImgPlaceholderIcon');
+      const fileTextEl = document.getElementById('pfFileNameText');
+      const clearBtn = document.getElementById('btnClearImgFile');
+
+      if (previewSrc) {
+        imgEl.src = previewSrc;
+        imgEl.classList.remove('hidden');
+        iconEl.classList.add('hidden');
+      } else {
+        imgEl.src = '';
+        imgEl.classList.add('hidden');
+        iconEl.classList.remove('hidden');
+      }
+
+      if (fileTextEl && labelText !== undefined) {
+        fileTextEl.textContent = labelText;
+      }
+      if (clearBtn) {
+        clearBtn.classList.toggle('hidden', !pmState.pendingImage);
+      }
+    }
+
+    function updateProductFormSyncNotice() {
+      const box = document.getElementById('pfSheetSyncNotice');
+      if (!box) return;
+      const cfg = loadSavedConfig();
+      if (cfg.appsScriptUrl && cfg.appsScriptUrl.trim()) {
+        box.className = 'rounded-xl p-3 text-xs leading-relaxed border bg-emerald-50 border-emerald-200 text-emerald-800';
+        box.innerHTML = '<strong>เชื่อมต่อ Apps Script แล้ว:</strong> เมื่อกดบันทึก ระบบจะอัปโหลดรูปเข้า Google Drive และส่งข้อมูลลงชีท <strong>Product</strong> ให้อัตโนมัติทันที';
+      } else {
+        box.className = 'rounded-xl p-3 text-xs leading-relaxed border bg-amber-50 border-amber-200 text-amber-800';
+        box.innerHTML = '<strong>หมายเหตุ:</strong> ยังไม่ได้ใส่ลิงก์ Apps Script (ข้อมูลจะบันทึกเฉพาะบนหน้าเว็บชั่วคราว) — หากต้องการให้เด้งเข้าชีท <strong>Product</strong> อัตโนมัติ ให้กดปุ่ม <strong>"เชื่อมต่อ Sheets"</strong> เพื่อวางลิงก์ Apps Script ก่อนครับ';
+      }
+    }
+
+    function openProductFormModal(product = null) {
+      pmState.editingId = product ? product.id : null;
+      pmState.pendingImage = null;
+
+      const titleEl = document.getElementById('productFormTitle');
+      const nameEl = document.getElementById('pfName');
+      const catEl = document.getElementById('pfCategory');
+      const statusEl = document.getElementById('pfStatus');
+      const imgEl = document.getElementById('pfImg');
+      const bomEl = document.getElementById('pfBom');
+      const fileInput = document.getElementById('pfImgFile');
+
+      if (fileInput) fileInput.value = '';
+
+      if (product) {
+        titleEl.textContent = 'แก้ไขข้อมูลสินค้า';
+        nameEl.value = product.name || '';
+        catEl.value = Array.from(catEl.options).some(o => o.value === product.category) ? product.category : 'Other';
+        statusEl.value = product.status || 'ใช้งานปกติ';
+        imgEl.value = product.img || '';
+        bomEl.value = product.bom || '';
+        const thumb = getDriveThumbUrl(product.img, 300);
+        updateProductImgPreview(thumb, thumb ? 'ใช้รูปภาพเดิม (สามารถเลือกรูปใหม่เพื่อเปลี่ยนได้)' : 'รองรับไฟล์ JPG, PNG, WebP (อัปโหลดขึ้น Drive อัตโนมัติ)');
+      } else {
+        titleEl.textContent = 'เพิ่มสินค้าใหม่';
+        nameEl.value = '';
+        catEl.value = 'Chair';
+        statusEl.value = 'ใช้งานปกติ';
+        imgEl.value = '';
+        bomEl.value = '';
+        updateProductImgPreview('', 'รองรับไฟล์ JPG, PNG, WebP (อัปโหลดขึ้น Drive อัตโนมัติ)');
+      }
+
+      updateProductFormSyncNotice();
+      document.getElementById('productFormModal').classList.remove('hidden');
+    }
+
+    function closeProductFormModal() {
+      document.getElementById('productFormModal').classList.add('hidden');
+      pmState.editingId = null;
+      pmState.pendingImage = null;
+    }
+
+    async function handleProductFormSubmit(e) {
+      e.preventDefault();
+      const name = document.getElementById('pfName').value.trim();
+      if (!name) {
+        showToast('กรุณากรอกชื่อสินค้า (Model)');
+        return;
+      }
+
+      const category = document.getElementById('pfCategory').value;
+      const status = document.getElementById('pfStatus').value;
+      let imgUrl = document.getElementById('pfImg').value.trim();
+      const bom = document.getElementById('pfBom').value.trim();
+
+      const submitBtn = document.getElementById('btnSubmitProductForm');
+      const origHtml = submitBtn.innerHTML;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block"></span><span>กำลังบันทึก...</span>';
+
+      const existing = pmState.editingId ? PRODUCT_MASTER.find(p => p.id === pmState.editingId) : null;
+      const oldName = existing ? existing.name : '';
+      let sheetSynced = false;
+
+      try {
+        const payload = {
+          mode: existing ? 'edit' : 'add',
+          oldName,
+          name,
+          category,
+          status,
+          imgUrl,
+          bom,
+          imageBase64: pmState.pendingImage ? pmState.pendingImage.base64 : '',
+          imageMimeType: pmState.pendingImage ? pmState.pendingImage.mimeType : ''
+        };
+
+        const res = await saveProductToGoogleSheet(payload);
+        if (res && !res.skipped) {
+          sheetSynced = true;
+          if (res.imgUrl) imgUrl = res.imgUrl;
+        }
+      } catch (err) {
+        showToast(`ส่งข้อมูลเข้า Sheets ไม่สำเร็จ: ${err.message}`);
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = origHtml;
+      }
+
+      const displayImg = imgUrl || (pmState.pendingImage ? pmState.pendingImage.previewUrl : '');
+
+      if (existing) {
+        existing.name = name;
+        existing.category = category;
+        existing.status = status;
+        existing.img = displayImg;
+        existing.bom = bom;
+      } else {
+        const nextId = PRODUCT_MASTER.reduce((m, p) => Math.max(m, p.id || 0), 0) + 1;
+        PRODUCT_MASTER.unshift({
+          id: nextId,
+          name,
+          category,
+          status,
+          img: displayImg,
+          bom,
+          materials: [],
+          colors: [],
+          topMats: [],
+          orderCount: 0,
+          totalQty: 0
+        });
+      }
+
+      // อัปเดตรูปภาพและ Spec ให้รายการในแท็บ Order ที่ใช้ชื่อรุ่นเดียวกันด้วย
+      const key = name.toLowerCase();
+      PRODUCTS.forEach(o => {
+        if (String(o.model || '').trim().toLowerCase() === key) {
+          if (displayImg) o.img = displayImg;
+          if (bom) o.spec = bom;
+          if (category) o.category = category;
+        }
+      });
+
+      closeProductFormModal();
+      renderAll();
+      showToast(sheetSynced ? 'บันทึกข้อมูลและส่งเข้าชีท Product เรียบร้อยแล้ว!' : 'บันทึกข้อมูลบนหน้าเว็บเรียบร้อยแล้ว');
+    }
+
+    // =========================================================================
+    // 5. DETAIL MODAL, LIGHTBOX & SHEET SETTINGS MODAL
+    // =========================================================================
+    function renderDetailModalImage() {
+      const item = state.selectedItem;
+      const spinner = document.getElementById('modalImgSpinner');
+      const directImg = document.getElementById('modalDirectImg');
+      const iframe = document.getElementById('modalDriveIframe');
+      const noImg = document.getElementById('modalNoImgState');
+      const controls = document.getElementById('modalImgControls');
+      const toggleBtn = document.getElementById('btnTogglePreviewMode');
+      const extLink = document.getElementById('modalDriveExternalLink');
+
+      spinner.classList.add('hidden');
+      directImg.classList.add('hidden');
+      iframe.classList.add('hidden');
+      noImg.classList.add('hidden');
+
+      if (!item || !item.img) {
+        controls.classList.add('hidden');
+        noImg.classList.remove('hidden');
+        iframe.src = '';
+        directImg.src = '';
+        return;
+      }
+
+      controls.classList.remove('hidden');
+      extLink.href = item.img;
+
+      if (state.previewMode === 'iframe') {
+        toggleBtn.textContent = 'สลับโหมดรูปภาพตรง';
+        iframe.src = getDrivePreviewUrl(item.img);
+        iframe.classList.remove('hidden');
+      } else {
+        toggleBtn.textContent = 'สลับโหมดพรีวิว Drive';
+        iframe.src = '';
+        spinner.classList.remove('hidden');
+        directImg.onload = () => {
+          spinner.classList.add('hidden');
+          directImg.classList.remove('hidden');
+        };
+        directImg.onerror = () => {
+          spinner.classList.add('hidden');
+          state.previewMode = 'iframe';
+          renderDetailModalImage();
+        };
+        directImg.src = getDriveThumbUrl(item.img, 1000);
+      }
+    }
+
+    function openDetailModal(item) {
+      state.selectedItem = item;
+      state.previewMode = 'image';
+
+      document.getElementById('modalHgnBadge').textContent = `HGN: ${item.hgn || '-'}`;
+      document.getElementById('modalPoBadge').textContent = `PO: ${item.po || '-'}`;
+      const matBadge = document.getElementById('modalMatBadge');
+      matBadge.textContent = item.material || '-';
+      matBadge.className = `px-2.5 py-0.5 rounded-lg text-xs font-medium ${getMaterialBadgeClass(item.material)}`;
+
+      document.getElementById('modalModelTitle').textContent = item.model || '-';
+      document.getElementById('modalCustomer').textContent = item.customers || '-';
+      document.getElementById('modalQty').textContent = `${(item.qty || 0).toLocaleString()} ชิ้น`;
+      document.getElementById('modalDueDate').textContent = `• กำหนดส่ง: ${item.due_date || '-'}`;
+      document.getElementById('modalSpecText').textContent = item.spec || 'ยังไม่ได้ระบุ Spec เพิ่มเติมในแท็บ Spec';
+      document.getElementById('modalCategory').textContent = item.category || '-';
+      document.getElementById('modalMaterial').textContent = item.material || '-';
+      document.getElementById('modalColorCode').textContent = [item.colors, item.codes].filter(v => v && v !== '-').join(' / ') || '-';
+      document.getElementById('modalSize').textContent = item.size || '-';
+      document.getElementById('modalTopMat').textContent = item.top_mat || '-';
+
+      renderDetailModalImage();
+      document.getElementById('detailModal').classList.remove('hidden');
+    }
+
+    function closeDetailModal() {
+      document.getElementById('detailModal').classList.add('hidden');
+      document.getElementById('modalDriveIframe').src = '';
+      state.selectedItem = null;
+    }
+
+    function openSheetModal() {
+      const cfg = loadSavedConfig();
+      document.getElementById('inputOrderUrl').value = cfg.orderUrl || DEFAULT_ORDER_URL;
+      document.getElementById('inputProductSheet').value = cfg.productSheet || 'Product';
+      document.getElementById('inputSpecSheet').value = cfg.specSheet || 'Spec';
+      document.getElementById('inputAppsScriptUrl').value = cfg.appsScriptUrl || '';
+      document.getElementById('sheetModal').classList.remove('hidden');
+    }
+
+    function closeSheetModal() {
+      document.getElementById('sheetModal').classList.add('hidden');
+    }
+
+    // =========================================================================
+    // 6. EXPORT CSV
+    // =========================================================================
+    function csvCell(val) {
+      const s = String(val ?? '').replace(/"/g, '""');
+      return `"${s}"`;
+    }
+
+    function exportFilteredCsv() {
+      let headers = [];
+      let rows = [];
+      let filename = '';
+
+      if (state.activeTab === 'products') {
+        const list = getFilteredProductMaster();
+        headers = ['ชื่อสินค้า', 'หมวดหมู่', 'สถานะ', 'BOM / Spec', 'ลิงก์รูปภาพ'];
+        rows = list.map(p => [p.name, p.category, p.status, p.bom, p.img]);
+        filename = `product_master_${new Date().toISOString().slice(0, 10)}.csv`;
+      } else {
+        const list = getFilteredProducts();
+        headers = ['เลขที่ออเดอร์ (HGN)', 'เลขที่ใบสั่งสินค้า (PO)', 'ลูกค้า', 'ชื่อสินค้า (Model)', 'หมวดหมู่', 'โครงสร้าง (วัสดุ)', 'สี', 'รหัสโครงสร้าง', 'หน้าโต๊ะ', 'Spec', 'จำนวน', 'กำหนดส่ง', 'ลิงก์รูปภาพ'];
+        rows = list.map(p => [p.hgn, p.po, p.customers, p.model, p.category, p.material, p.colors, p.codes, p.top_mat, p.spec, p.qty, p.due_date, p.img]);
+        filename = `${state.activeTab === 'metal' ? 'metal_orders' : 'production_orders'}_${new Date().toISOString().slice(0, 10)}.csv`;
+      }
+
+      const csvContent = '\uFEFF' + [headers.map(csvCell).join(','), ...rows.map(r => r.map(csvCell).join(','))].join('\r\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast(`ส่งออกไฟล์ ${filename} เรียบร้อยแล้ว`);
+    }
+
+    // =========================================================================
+    // 7. EVENT LISTENERS & INITIALIZATION
+    // =========================================================================
+    function initEvents() {
+      // Main Tabs
+      document.querySelectorAll('.main-tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.activeTab = btn.dataset.tab;
+          state.material = 'ALL';
+          renderAll();
+        });
+      });
+
+      // Header Buttons
+      const csvInput = document.getElementById('csvFileInput');
+      document.getElementById('btnImportCsv').addEventListener('click', () => csvInput.click());
+      document.getElementById('btnBannerImportCsv').addEventListener('click', () => csvInput.click());
+      csvInput.addEventListener('change', (e) => {
+        handleLocalCsvFiles(e.target.files);
+        e.target.value = '';
+      });
+
+      document.getElementById('btnRefreshSheet').addEventListener('click', () => syncFromGoogleSheets(false));
+      document.getElementById('btnBannerRetry').addEventListener('click', () => syncFromGoogleSheets(false));
+      document.getElementById('btnOpenSheetModal').addEventListener('click', openSheetModal);
+      document.getElementById('btnExportCsv').addEventListener('click', exportFilteredCsv);
+
+      // Orders Filters
+      const searchInput = document.getElementById('searchInput');
+      const btnClearSearch = document.getElementById('btnClearSearch');
+      searchInput.addEventListener('input', (e) => {
+        state.search = e.target.value;
+        btnClearSearch.classList.toggle('hidden', !state.search);
+        renderAll();
+      });
+      btnClearSearch.addEventListener('click', () => {
+        state.search = '';
+        searchInput.value = '';
+        btnClearSearch.classList.add('hidden');
+        renderAll();
+      });
+
+      document.getElementById('materialFilter').addEventListener('change', (e) => {
+        state.material = e.target.value;
+        renderAll();
+      });
+      document.getElementById('categoryFilter').addEventListener('change', (e) => {
+        state.category = e.target.value;
+        renderAll();
+      });
+      document.getElementById('imageFilter').addEventListener('change', (e) => {
+        state.imageFilter = e.target.value;
+        renderAll();
+      });
+      document.getElementById('sortSelect').addEventListener('change', (e) => {
+        state.sort = e.target.value;
+        renderAll();
+      });
+
+      document.getElementById('btnResetFilters').addEventListener('click', () => {
+        state.search = '';
+        state.material = 'ALL';
+        state.category = 'ALL';
+        state.imageFilter = 'ALL';
+        searchInput.value = '';
+        btnClearSearch.classList.add('hidden');
+        document.getElementById('categoryFilter').value = 'ALL';
+        document.getElementById('imageFilter').value = 'ALL';
+        renderAll();
+      });
+
+      // View Switcher
+      const btnTable = document.getElementById('btnViewTable');
+      const btnCard = document.getElementById('btnViewCard');
+      btnTable.addEventListener('click', () => {
+        state.view = 'table';
+        btnTable.className = 'px-3 py-1.5 rounded-lg text-xs font-display font-medium bg-amber-500 text-white transition flex items-center gap-1.5';
+        btnCard.className = 'px-3 py-1.5 rounded-lg text-xs font-display font-medium text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5';
+        renderAll();
+      });
+      btnCard.addEventListener('click', () => {
+        state.view = 'card';
+        btnCard.className = 'px-3 py-1.5 rounded-lg text-xs font-display font-medium bg-amber-500 text-white transition flex items-center gap-1.5';
+        btnTable.className = 'px-3 py-1.5 rounded-lg text-xs font-display font-medium text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5';
+        renderAll();
+      });
+      btnCard.addEventListener('click', () => {
+        state.view = 'card';
+        btnCard.className = 'px-3 py-1.5 rounded-lg text-xs font-display font-medium bg-amber-500 text-slate-950 transition flex items-center gap-1.5';
+        btnTable.className = 'px-3 py-1.5 rounded-lg text-xs font-display font-medium text-slate-400 hover:text-slate-200 transition flex items-center gap-1.5';
+        renderAll();
+      });
+
+      // Product Master Controls
+      document.getElementById('pmSearchInput').addEventListener('input', (e) => {
+        pmState.search = e.target.value;
+        renderProductMaster();
+      });
+      document.getElementById('pmCategoryFilter').addEventListener('change', (e) => {
+        pmState.category = e.target.value;
+        renderProductMaster();
+      });
+      document.getElementById('btnPmSortName').addEventListener('click', () => {
+        pmState.sortDir = pmState.sortDir === 'asc' ? 'desc' : 'asc';
+        renderProductMaster();
+      });
+      document.getElementById('btnAddProduct').addEventListener('click', () => openProductFormModal(null));
+
+      // Detail Modal Events
+      document.getElementById('btnCloseDetailModal').addEventListener('click', closeDetailModal);
+      document.getElementById('detailModal').addEventListener('click', (e) => {
+        if (e.target.id === 'detailModal') closeDetailModal();
+      });
+      document.getElementById('btnTogglePreviewMode').addEventListener('click', () => {
+        state.previewMode = state.previewMode === 'image' ? 'iframe' : 'image';
+        renderDetailModalImage();
+      });
+      const openItemLightbox = () => {
+        if (!state.selectedItem || !state.selectedItem.img) return;
+        document.getElementById('lightboxImg').src = getDriveThumbUrl(state.selectedItem.img, 1600);
+        document.getElementById('lightboxModal').classList.remove('hidden');
+      };
+      document.getElementById('btnZoomLightbox').addEventListener('click', openItemLightbox);
+      document.getElementById('modalDirectImg').addEventListener('click', openItemLightbox);
+      document.getElementById('btnCopySpec').addEventListener('click', () => {
+        const it = state.selectedItem;
+        if (!it) return;
+        const txt = `HGN: ${it.hgn}\nPO: ${it.po}\nลูกค้า: ${it.customers}\nสินค้า: ${it.model}\nวัสดุโครงสร้าง: ${it.material} (${it.colors} / ${it.codes})\nจำนวน: ${it.qty} ชิ้น\nกำหนดส่ง: ${it.due_date}\nSpec: ${it.spec || '-'}`;
+        copyToClipboard(txt, 'คัดลอกรายละเอียดสเปกแล้ว');
+      });
+
+      // Lightbox Close
+      const closeLb = () => {
+        document.getElementById('lightboxModal').classList.add('hidden');
+        document.getElementById('lightboxImg').src = '';
+      };
+      document.getElementById('btnCloseLightbox').addEventListener('click', closeLb);
+      document.getElementById('lightboxModal').addEventListener('click', (e) => {
+        if (e.target.id === 'lightboxModal') closeLb();
+      });
+
+      // BOM Modal Events
+      document.getElementById('btnCloseBomModal').addEventListener('click', closeBomModal);
+      document.getElementById('bomModal').addEventListener('click', (e) => {
+        if (e.target.id === 'bomModal') closeBomModal();
+      });
+      document.getElementById('btnBomCopy').addEventListener('click', () => {
+        const p = pmState.selectedProduct;
+        if (!p) return;
+        const txt = `สินค้า: ${p.name}\nหมวดหมู่: ${p.category}\nBOM/Spec: ${p.bom || '-'}\nวัสดุที่เคยผลิต: ${(p.materials || []).join(', ') || '-'}`;
+        copyToClipboard(txt, 'คัดลอกข้อมูล BOM แล้ว');
+      });
+      document.getElementById('btnBomEditProduct').addEventListener('click', () => {
+        const p = pmState.selectedProduct;
+        closeBomModal();
+        if (p) openProductFormModal(p);
+      });
+
+      // Product Form Modal Events
+      document.getElementById('btnCloseProductForm').addEventListener('click', closeProductFormModal);
+      document.getElementById('btnCancelProductForm').addEventListener('click', closeProductFormModal);
+      document.getElementById('productFormModal').addEventListener('click', (e) => {
+        if (e.target.id === 'productFormModal') closeProductFormModal();
+      });
+      document.getElementById('productForm').addEventListener('submit', handleProductFormSubmit);
+
+      const pfImgFile = document.getElementById('pfImgFile');
+      document.getElementById('btnPickProductImg').addEventListener('click', () => pfImgFile.click());
+      pfImgFile.addEventListener('change', async (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        try {
+          const resized = await resizeImageToBase64(file, 1200);
+          pmState.pendingImage = resized;
+          updateProductImgPreview(resized.previewUrl, `เลือกไฟล์แล้ว: ${file.name}`);
+        } catch (err) {
+          showToast('ไม่สามารถอ่านไฟล์รูปภาพได้ กรุณาลองไฟล์อื่น');
+        }
+      });
+      document.getElementById('btnClearImgFile').addEventListener('click', () => {
+        pmState.pendingImage = null;
+        pfImgFile.value = '';
+        const urlVal = document.getElementById('pfImg').value.trim();
+        updateProductImgPreview(getDriveThumbUrl(urlVal, 300), 'รองรับไฟล์ JPG, PNG, WebP (อัปโหลดขึ้น Drive อัตโนมัติ)');
+      });
+      document.getElementById('pfImg').addEventListener('input', (e) => {
+        if (pmState.pendingImage) return;
+        const thumb = getDriveThumbUrl(e.target.value.trim(), 300);
+        updateProductImgPreview(thumb, thumb ? 'พรีวิวจากลิงก์รูปภาพ' : 'รองรับไฟล์ JPG, PNG, WebP (อัปโหลดขึ้น Drive อัตโนมัติ)');
+      });
+
+      // Sheet Modal Events
+      document.getElementById('btnCloseSheetModal').addEventListener('click', closeSheetModal);
+      document.getElementById('sheetModal').addEventListener('click', (e) => {
+        if (e.target.id === 'sheetModal') closeSheetModal();
+      });
+      document.getElementById('btnCopyAppsScript').addEventListener('click', () => {
+        copyToClipboard(APPS_SCRIPT_CODE, 'คัดลอกโค้ด Apps Script แล้ว');
+      });
+      document.getElementById('btnCopyFormulaA2').addEventListener('click', () => {
+        copyToClipboard(FORMULA_A2, 'คัดลอกสูตร A2 แล้ว');
+      });
+      document.getElementById('btnCopyFormulaD2').addEventListener('click', () => {
+        copyToClipboard(FORMULA_D2, 'คัดลอกสูตร D2 แล้ว');
+      });
+      document.getElementById('btnSaveAndSync').addEventListener('click', () => {
+        saveConfig({
+          orderUrl: document.getElementById('inputOrderUrl').value.trim() || DEFAULT_ORDER_URL,
+          productSheet: document.getElementById('inputProductSheet').value.trim() || 'Product',
+          specSheet: document.getElementById('inputSpecSheet').value.trim() || 'Spec',
+          appsScriptUrl: document.getElementById('inputAppsScriptUrl').value.trim()
+        });
+        closeSheetModal();
+        syncFromGoogleSheets(false);
+      });
+
+      // Escape key closes open modals
+      document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape') return;
+        if (!document.getElementById('lightboxModal').classList.contains('hidden')) {
+          closeLb();
+        } else if (!document.getElementById('productFormModal').classList.contains('hidden')) {
+          closeProductFormModal();
+        } else if (!document.getElementById('bomModal').classList.contains('hidden')) {
+          closeBomModal();
+        } else if (!document.getElementById('sheetModal').classList.contains('hidden')) {
+          closeSheetModal();
+        } else if (!document.getElementById('detailModal').classList.contains('hidden')) {
+          closeDetailModal();
+        }
+      });
+    }
+
+    // Boot Application
+    PRODUCT_MASTER = buildProductMaster([], PRODUCTS, []);
+    initEvents();
+    updateSyncUI();
+    renderAll();
+    syncFromGoogleSheets(true);
+  </script>
+</body>
+</html>
